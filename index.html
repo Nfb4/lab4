@@ -3,7 +3,11 @@
   <head>
     <script src="https://d3js.org/d3.v7.min.js"></script>
   </head>
-
+  <style>
+    .tick line {
+      visibility: hidden;
+    }
+  </style>
   <body>
     <!-- <script src="lab4.js"></script> -->
 
@@ -195,19 +199,15 @@
         }
       };
 
-      const graphing = async function (season, width, height) {
+      const graphing = async function (totals, width, height) {
         var max = 0;
-        for (const key in seasons[season]) {
-          var clubSpend = seasons[season][key][0];
+        for (const key in totals) {
+          var clubSpend = totals[key];
           if (clubSpend > max) {
             max = clubSpend;
           }
         }
-        var y = d3
-          .scaleBand()
-          .range([0, height])
-          .domain(Object.keys(seasons[season]))
-          .padding(0.2);
+        var y = d3.scaleBand().range([0, height]).domain(Object.keys(totals));
 
         // Define the y scale so that the values are proportionate
         var x = d3.scaleLinear().domain([0, max]).range([0, width]);
@@ -227,18 +227,14 @@
         // add a top x axis to the graph, class it as 'xTop
 
         // Add a right Y axis class it as 'yLeft'
-        svg
-          .append("g")
-          .classed("yLeft", true)
-          .attr("class", "myYaxis")
-          .call(d3.axisLeft(y));
+        svg.append("g").classed("yLeft", true).call(d3.axisLeft(y));
       };
 
-      const iniSVG = async function () {
+      const iniSVG = async function (season) {
         // set the dimensions and margins of the graph
         const margin = { top: 30, right: 30, bottom: 70, left: 100 };
-        const width = 460 - margin.left - margin.right;
-        const height = 400 - margin.top - margin.bottom;
+        const width = 800 - margin.left - margin.right;
+        const height = 800 - margin.top - margin.bottom;
 
         // append the svg object to the body of the page
         var svg = d3
@@ -252,28 +248,35 @@
             "transform",
             "translate(" + margin.left + "," + margin.top + ")"
           );
+
+        svg
+          .append("text")
+          .classed("text", true)
+          .attr("transform", "translate(" + width/2 +", 0)")
+          .attr("text-anchor", "middle")
+          .text("Premier league spend from 10-11 to " + season)
+
         return [margin, width, height, svg];
       };
 
-      const drawBars = function (season, x, y, svg, height) {
+      const drawBars = function (season, totals, x, y, svg, height, barsize) {
         // Iterate through the dataset and add rectangles for each item
-        var mapped = Object.keys(seasons[season]).map((d) => {
-          console.log();
+        var mapped = Object.keys(totals).map((d) => {
           return {
             club: d,
-            spend: seasons[season][d][0],
+            spend: totals[d],
           };
         });
-
+        let adjustment = mapped.length / 4;
         var u = svg.selectAll("rect").data(mapped);
 
         u.enter()
           .append("rect")
           .attr("x", x(1))
           .attr("y", function (d) {
-            return y(d.club);
+            return y(d.club) + adjustment;
           })
-          .attr("height", y.bandwidth())
+          .attr("height", barsize)
           .merge(u)
           .transition()
           .duration(1000)
@@ -286,36 +289,23 @@
         u.transition()
           .duration(1000)
           .ease(d3.easeLinear)
+          .attr("x", x(1))
+          .attr("y", function (d) {
+            return y(d.club) + adjustment;
+          })
           .attr("width", function (d) {
             return x(d.spend);
           });
       };
 
       const main = async function (spendPerClubPerSeason, csvArr) {
-        // d3.select("body")
-        //   .append("button")
-        //   .text("change data")
-        //   .on("click", async function () {
-        //     svgArr[3].selectAll("g").remove()
-        //     let scales = await graphing("11-12", svgArr[1], svgArr[2]);
-        //     iniAxis(
-        //       svgArr[0],
-        //       svgArr[1],
-        //       svgArr[2],
-        //       svgArr[3],
-        //       scales[0],
-        //       scales[1]
-        //     );
-        //     drawBars("11-12", scales[0], scales[1], svgArr[3], svgArr[2]);
-        //   });
+        let barsize = 10;
+
+        let totals = {};
 
         await dummyFunc(spendPerClubPerSeason);
-
-        for (let i = 0; i < csvArr.length; i++) {
-          await dummyFuncSeason(csvArr[i]);
-        }
-        let svgArr = await iniSVG();
-        let scales = await graphing("10-11", svgArr[1], svgArr[2]);
+        let svgArr = await iniSVG(csvArr[0].slice(81, 86));
+        let scales = await graphing(totals, svgArr[1], svgArr[2]);
 
         iniAxis(
           svgArr[0],
@@ -325,22 +315,53 @@
           scales[0],
           scales[1]
         );
+
         for (let i = 0; i < csvArr.length; i++) {
           let key = csvArr[i].slice(81, 86);
-          svgArr[3].selectAll("g").remove();
-          let scales = await graphing(key, svgArr[1], svgArr[2]);
-          iniAxis(
-            svgArr[0],
-            svgArr[1],
-            svgArr[2],
-            svgArr[3],
-            scales[0],
-            scales[1]
-          );
-          console.log(key, scales[0], scales[1], svgArr[3], svgArr[2])
-          drawBars(key, scales[0], scales[1], svgArr[3], svgArr[2]);
+
+          await dummyFuncSeason(csvArr[i]);
+          for (let team in seasons[key]) {
+            if (seasons[key][team][0] > 0) {
+              if (totals[team] != undefined) {
+                totals[team] = totals[team] + seasons[key][team][0];
+              } else {
+                totals[team] = seasons[key][team][0];
+              }
+            }
+          }
+          await sleep(1500);
+          svgArr[3].selectAll("text")
+          .text("Premier league spend from 10-11 to " + key)
+          await update(totals, key, svgArr, barsize);
         }
       };
+
+      let update = async function (totals, key, svgArr, barsize) {
+        svgArr[3].selectAll("g").remove();
+        
+        let scales = await graphing(totals, svgArr[1], svgArr[2]);
+        iniAxis(
+          svgArr[0],
+          svgArr[1],
+          svgArr[2],
+          svgArr[3],
+          scales[0],
+          scales[1]
+        );
+        drawBars(
+          key,
+          totals,
+          scales[0],
+          scales[1],
+          svgArr[3],
+          svgArr[2],
+          barsize
+        );
+      };
+
+      function sleep(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
 
       main(spendPerClubPerSeason, csvArr);
     </script>
