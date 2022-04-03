@@ -11,6 +11,10 @@
   <body>
     <!-- <script src="lab4.js"></script> -->
     <!-- Initialize a select button -->
+    <select id="start"></select>
+    <select id="end"></select>
+    <button id="barButton">Update</button>
+    <div id="barchart"></div>
     <select id="xAxisButton"></select>
     <select id="yAxisButton"></select>
     <select id="timePeriod"></select>
@@ -305,7 +309,7 @@
 
         // append the svg object to the body of the page
         var svg = d3
-          .select("#dataviz")
+          .select("#barchart")
           .append("svg")
           .attr("width", width + margin.left + margin.right)
           .attr("height", height + margin.top + margin.bottom)
@@ -339,10 +343,10 @@
             "translate(" + margin.left + "," + margin.top + ")"
           );
 
-          svg
+        svg
           .append("text")
           .classed("text", true)
-          .attr("transform", "translate(0,"+ -300+")")
+          .attr("transform", "translate(0," + -300 + ")")
           .text("All time Spend (green) v All time Income (red)");
 
         return [margin, width, height, svg, innerRadius, outerRadius];
@@ -472,6 +476,8 @@
           .attr("width", function (d) {
             return x(d.spend);
           });
+
+          u.exit().remove();
       };
 
       const updateBar = async function (totals, key, svgArr, barsize) {
@@ -510,7 +516,6 @@
             inc: totals[d][1],
           };
         });
-
 
         svg
           .append("g")
@@ -772,6 +777,129 @@
         return icons;
       };
 
+      const iniButtons = function (seasonsArr, seasonsArr2) {
+        d3.select("#start")
+          .selectAll("myOptions")
+          .data(seasonsArr)
+          .enter()
+          .append("option")
+          .text(function (d) {
+            return d;
+          }) // text showed in the menu
+          .attr("value", function (d) {
+            return d;
+          }); // corresponding value returned by the button
+        d3.select("#end")
+          .selectAll("myOptions")
+          .data(seasonsArr2)
+          .enter()
+          .append("option")
+          .text(function (d) {
+            return d;
+          }) // text showed in the menu
+          .attr("value", function (d) {
+            return d;
+          }); // corresponding value returned by the button
+      };
+
+      const iniButtonsSingle = function (seasonsArr2) {
+        d3.select("#end")
+          .selectAll("myOptions")
+          .data(seasonsArr2)
+          .enter()
+          .append("option")
+          .text(function (d) {
+            return d;
+          }) // text showed in the menu
+          .attr("value", function (d) {
+            return d;
+          }); // corresponding value returned by the button
+      };
+
+      const iniBarChart = async function(svgArrBar, seasonKey1, seasonKey2, csvArr, totals, barsize){
+        svgArrBar[3].selectAll("text").remove()
+
+        svgArrBar[3]
+          .append("text")
+          .classed("text", true)
+          .attr("transform", "translate(" + svgArrBar[1] / 2 + ", 0)")
+          .attr("text-anchor", "middle")
+          .text("Premier league spend from "+  seasonKey1+ " to " + seasonKey2);
+
+        let sleepVal = 0;
+        for (let i = 0; i < csvArr.length; i++) {
+          let key = csvArr[i].slice(68, 73);
+
+          await dummyFuncSeason(csvArr[i]);
+          for (let team in seasons[key]) {
+            if (seasons[key][team][0] > 0) {
+              if (totals[team] != undefined) {
+                totals[team][0] = totals[team][0] + seasons[key][team][0];
+              } else {
+                totals[team] = [seasons[key][team][0], 0];
+              }
+            }
+            if (seasons[key][team][1] > 0) {
+              if (totals[team] != undefined) {
+                totals[team][1] = totals[team][1] + seasons[key][team][1];
+              } else {
+                totals[team][1] = [0, seasons[key][team][1]];
+              }
+            }
+          }
+
+          await sleep(sleepVal);
+          sleepVal = 0;
+          svgArrBar[3]
+            .selectAll("text")
+            .text("Premier league spend from 10-11 to " + key);
+          await updateBar(totals, key, svgArrBar, barsize);
+        }
+      }
+
+      const iniBarChartUpdate = async function(svgArrBar, seasonKey1, seasonKey2, csvArr, barsize){
+        totals = {}
+
+        svgArrBar[3].selectAll("text").remove()
+
+        svgArrBar[3]
+          .append("text")
+          .classed("text", true)
+          .attr("transform", "translate(" + svgArrBar[1] / 2 + ", 0)")
+          .attr("text-anchor", "middle")
+          .text("Premier league spend from "+  seasonKey1+ " to " + seasonKey2);
+
+        let sleepVal = 300;
+        for (let i = 0; i < csvArr.length; i++) {
+          let key = csvArr[i].slice(68, 73);
+
+          await dummyFuncSeason(csvArr[i]);
+          for (let team in seasons[key]) {
+            if (seasons[key][team][0] > 0) {
+              if (totals[team] != undefined) {
+                totals[team][0] = totals[team][0] + seasons[key][team][0];
+              } else {
+                totals[team] = [seasons[key][team][0], 0];
+              }
+            }
+            if (seasons[key][team][1] > 0) {
+              if (totals[team] != undefined) {
+                totals[team][1] = totals[team][1] + seasons[key][team][1];
+              } else {
+                totals[team][1] = [0, seasons[key][team][1]];
+              }
+            }
+          }
+
+          await sleep(sleepVal);
+          sleepVal = 1500;
+          svgArrBar[3]
+            .selectAll("text")
+            .text("Premier league spend from " +  seasonKey1 + " to " + key);
+          await updateBar(totals, key, svgArrBar, barsize);
+        }
+      }
+
       const main = async function (spendPerClubPerSeason, csvArr) {
         let axisDict = {
           Spend: 0,
@@ -785,6 +913,20 @@
           Attendance: 9,
         };
 
+        const seasonsArr = [
+            "10-11",
+            "11-12",
+            "12-13",
+            "13-14",
+            "14-15",
+            "15-16",
+            "16-17",
+            "17-18",
+            "18-19",
+            "19-20",
+            "20-21",
+          ];
+
         let barsize = 10;
 
         let totals = {};
@@ -792,8 +934,12 @@
         let icons = await iniIcons();
 
         let seasonKey = csvArr[0].slice(68, 73);
-        let scatterX = 6;
-        let scatterY = 6;
+        let scatterX = 0;
+        let scatterY = 0;
+
+        let seasonsArr2 = seasonsArr.slice(1);
+
+        iniButtons(seasonsArr, seasonsArr2);
 
         await dummyFunc(spendPerClubPerSeason);
 
@@ -801,42 +947,8 @@
 
         let svgArrBar = await iniSVG();
 
-        svgArrBar[3]
-          .append("text")
-          .classed("text", true)
-          .attr("transform", "translate(" + svgArrBar[1] / 2 + ", 0)")
-          .attr("text-anchor", "middle")
-          .text("Premier league spend from 10-11 to " + seasonKey);
+        iniBarChart(svgArrBar, "10-11", "20-21", csvArr, totals, barsize)
 
-        let sleepVal = 0;
-        for (let i = 0; i < csvArr.length; i++) {
-          let key = csvArr[i].slice(68, 73);
-
-          await dummyFuncSeason(csvArr[i]);
-          for (let team in seasons[key]) {
-            if (seasons[key][team][0] > 0) {
-              if (totals[team] != undefined) {
-                totals[team][0] = totals[team][0] + seasons[key][team][0];
-              } else {
-                totals[team] = [seasons[key][team][0],0];
-              }
-            }
-            if (seasons[key][team][1] > 0) {
-              if (totals[team] != undefined) {
-                totals[team][1] = totals[team][1] + seasons[key][team][1];
-              } else {
-                totals[team][1] = [0,seasons[key][team][1]];
-              }
-            }
-          }
-
-          await sleep(sleepVal);
-          sleepVal = 0;
-          svgArrBar[3]
-            .selectAll("text")
-            .text("Premier league spend from 10-11 to " + key);
-          await updateBar(totals, key, svgArrBar, barsize);
-        }
         await updateScatter(
           seasonKey,
           svgArrScatter,
@@ -871,25 +983,38 @@
             icons
           );
         });
-        d3.select("#yAxisButton").on("change", function (event, d) {
+        d3.select("#start").on("change", function (event, d) {
           // recover the option that has been chosen
-          const option1 = d3.select("#timePeriod").property("value");
-          const option2 = d3.select("#xAxisButton").property("value");
-          const option3 = d3.select(this).property("value");
-          updateScatter(
-            option1,
-            svgArrScatter,
-            axisDict[option2],
-            axisDict[option3],
-            icons
-          );
+          const option = d3.select(this).property("value");
+
+          let index = seasonsArr.findIndex((season) => season === option);
+
+          removeOptions(document.getElementById('end'));
+          iniButtonsSingle(seasonsArr.slice(index));
         });
+
+        d3.select("#barButton").on("click", function(event, d){
+          const start = d3.select('#start').property("value");
+          const end = d3.select('#end').property("value");
+          let indexStart = seasonsArr.findIndex((season) => season === start);
+          let indexEnd = seasonsArr.findIndex((season) => season === end);
+          iniBarChartUpdate(svgArrBar, start, end, csvArr.slice(indexStart,indexEnd+1), barsize)
+          removeOptions(document.getElementById('start'));
+          removeOptions(document.getElementById('end'));
+          iniButtons(seasonsArr, seasonsArr.slice(indexEnd));
+        })
 
         let svgArrCircular = await iniSVGCircular();
         await updateCircle(totals, svgArrCircular);
-        console.log("end")
+        console.log("end");
       };
-
+      function removeOptions(selectElement) {
+        var i,
+          L = selectElement.options.length - 1;
+        for (i = L; i >= 0; i--) {
+          selectElement.remove(i);
+        }
+      }
       function sleep(ms) {
         return new Promise((resolve) => setTimeout(resolve, ms));
       }
