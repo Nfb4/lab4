@@ -207,10 +207,32 @@
             max = clubSpend;
           }
         }
-        var y = d3.scaleBand().range([0, height]).domain(Object.keys(totals));
+        var y = d3.scaleBand().domain(Object.keys(totals)).range([0, height]);
 
         // Define the y scale so that the values are proportionate
         var x = d3.scaleLinear().domain([0, max]).range([0, width]);
+
+        return [x, y];
+      };
+
+
+      const scatterAxes = async function (season, xType, yType, width, height) {
+        var maxX = 0;
+        var maxY = 0;
+        for (const key in seasons[season]) {
+          var clubX = seasons[season][key][xType];
+          var clubY = seasons[season][key][yType];
+          if (clubX > maxX) {
+            max = clubX;
+          }
+          if (clubY > maxY) {
+            maxY = clubY;
+          }
+        }
+        var y = d3.scaleLinear().domain(0,maxY).range([0, height]);
+
+        // Define the y scale so that the values are proportionate
+        var x = d3.scaleLinear().domain([0, maxX]).range([0, width]);
 
         return [x, y];
       };
@@ -248,13 +270,6 @@
             "transform",
             "translate(" + margin.left + "," + margin.top + ")"
           );
-
-        svg
-          .append("text")
-          .classed("text", true)
-          .attr("transform", "translate(" + width/2 +", 0)")
-          .attr("text-anchor", "middle")
-          .text("Premier league spend from 10-11 to " + season)
 
         return [margin, width, height, svg];
       };
@@ -298,45 +313,7 @@
           });
       };
 
-      const main = async function (spendPerClubPerSeason, csvArr) {
-        let barsize = 10;
-
-        let totals = {};
-
-        await dummyFunc(spendPerClubPerSeason);
-        let svgArr = await iniSVG(csvArr[0].slice(81, 86));
-        let scales = await graphing(totals, svgArr[1], svgArr[2]);
-
-        iniAxis(
-          svgArr[0],
-          svgArr[1],
-          svgArr[2],
-          svgArr[3],
-          scales[0],
-          scales[1]
-        );
-
-        for (let i = 0; i < csvArr.length; i++) {
-          let key = csvArr[i].slice(81, 86);
-
-          await dummyFuncSeason(csvArr[i]);
-          for (let team in seasons[key]) {
-            if (seasons[key][team][0] > 0) {
-              if (totals[team] != undefined) {
-                totals[team] = totals[team] + seasons[key][team][0];
-              } else {
-                totals[team] = seasons[key][team][0];
-              }
-            }
-          }
-          await sleep(1500);
-          svgArr[3].selectAll("text")
-          .text("Premier league spend from 10-11 to " + key)
-          await update(totals, key, svgArr, barsize);
-        }
-      };
-
-      let update = async function (totals, key, svgArr, barsize) {
+      let updateBar = async function (totals, key, svgArr, barsize) {
         svgArr[3].selectAll("g").remove();
         
         let scales = await graphing(totals, svgArr[1], svgArr[2]);
@@ -358,6 +335,122 @@
           barsize
         );
       };
+
+      const drawScatter = function (season, x, y, svg, height, scatterX, scatterY) {
+        // Iterate through the dataset and add rectangles for each item
+        var mapped = Object.keys(seasons[season]).map((d) => {
+          console.log(d)
+          console.log(seasons[season][d])
+          return {
+            xVal: seasons[season][d][scatterX],
+            yVal: seasons[season][d][scatterY],
+          };
+        });
+
+        var u = svg.selectAll("dot").data(mapped);
+
+        u.enter()
+          .append("curcle")
+          .attr("cx", function (d) {
+            return x(d.xVal);
+          })
+          .attr("cy", function (d) {
+            return y(d.yVal);
+          })
+          .attr("r", 5)
+          .merge(u)
+          .attr("fill", "red");
+
+        
+      };
+      let updateScatter = async function (key, svgArr, scatterX, scatterY) {
+        svgArr[3].selectAll("g").remove();
+        
+        let scales = await scatterAxes(key,scatterX, scatterY, svgArr[1], svgArr[2]);
+        iniAxis(
+          svgArr[0],
+          svgArr[1],
+          svgArr[2],
+          svgArr[3],
+          scales[0],
+          scales[1]
+        );
+        drawScatter(
+          key,
+          scales[0],
+          scales[1],
+          svgArr[3],
+          svgArr[2],
+          scatterX,
+           scatterY
+        );
+      };
+
+      const main = async function (spendPerClubPerSeason, csvArr) {
+        let barsize = 10;
+
+        let totals = {};
+
+        let seasonKey = csvArr[0].slice(81, 86);
+        let scatterX = 4;
+        let scatterY = 6;
+
+        await dummyFunc(spendPerClubPerSeason);
+        let svgArrBar = await iniSVG(seasonKey);
+
+        svgArrBar[3]
+          .append("text")
+          .classed("text", true)
+          .attr("transform", "translate(" + svgArrBar[1]/2 +", 0)")
+          .attr("text-anchor", "middle")
+          .text("Premier league spend from 10-11 to " + seasonKey)
+
+        let svgArrScatter = await iniSVG(seasonKey);
+
+        let scatterScales = await scatterAxes(seasonKey, scatterX, scatterY, svgArrScatter[1], svgArrScatter[2])
+
+        let barScales = await graphing(totals, svgArrBar[1], svgArrBar[2]);
+
+        iniAxis(
+          svgArrBar[0],
+          svgArrBar[1],
+          svgArrBar[2],
+          svgArrBar[3],
+          barScales[0],
+          barScales[1]
+        );
+
+        iniAxis(
+          svgArrScatter[0],
+          svgArrScatter[1],
+          svgArrScatter[2],
+          svgArrScatter[3],
+          scatterScales[0],
+          scatterScales[1]
+        );
+
+        for (let i = 0; i < csvArr.length; i++) {
+          let key = csvArr[i].slice(81, 86);
+
+          await dummyFuncSeason(csvArr[i]);
+          for (let team in seasons[key]) {
+            if (seasons[key][team][0] > 0) {
+              if (totals[team] != undefined) {
+                totals[team] = totals[team] + seasons[key][team][0];
+              } else {
+                totals[team] = seasons[key][team][0];
+              }
+            }
+          }
+          await sleep(0);
+          svgArrBar[3].selectAll("text")
+          .text("Premier league spend from 10-11 to " + key)
+          await updateBar(totals, key, svgArrBar, barsize);
+        }
+        await updateScatter(seasonKey, svgArrScatter, scatterX, scatterY)
+      };
+      
+      
 
       function sleep(ms) {
         return new Promise((resolve) => setTimeout(resolve, ms));
