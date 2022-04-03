@@ -12,11 +12,9 @@
     <!-- <script src="lab4.js"></script> -->
     <!-- Initialize a select button -->
     <select id="xAxisButton"></select>
-      <select id="yAxisButton"></select>
-      <select id="timePeriod"></select>
-    <div id="dataviz">
-      
-    </div>
+    <select id="yAxisButton"></select>
+    <select id="timePeriod"></select>
+    <div id="dataviz"></div>
 
     <script>
       // CSV of spend data, all seasons in one csv
@@ -78,7 +76,7 @@
         // If the spend is in the thousands, multiple by .001 so it is inline with the other values in millions
         if (csvLine["inc"].slice(csvLine["inc"].length - 3) == "Th.") {
           inc =
-            parseFloat(csvLine["inc"].slice(1, csvLine["inc"].length - 3)) *
+            parseFloat(csvLine["inc"].slice(2, csvLine["inc"].length - 3)) *
             0.001;
         }
         // If there is no value set inc to 0
@@ -87,7 +85,7 @@
         }
         // Parse as int and remove '£' and 'M'
         else {
-          inc = parseFloat(csvLine["inc"].slice(1, csvLine["inc"].length - 1));
+          inc = parseFloat(csvLine["inc"].slice(2, csvLine["inc"].length - 1));
         }
         // If the spend is in the thousands, multiple by .001 so it is inline with the other values in millions
         if (csvLine["net"].slice(csvLine["net"].length - 3) == "Th.") {
@@ -155,6 +153,7 @@
           parseFloat(csvLine["GF"]),
           parseFloat(csvLine["GA"]),
           parseFloat(csvLine["Pts"]),
+          parseInt(csvLine["Attendance"]),
         ];
         return entryDict;
       };
@@ -168,13 +167,13 @@
             seasons[key][clubDict.team][0],
             seasons[key][clubDict.team][1],
             seasons[key][clubDict.team][2],
-            clubDict.data[0],
             clubDict.data[1],
             clubDict.data[2],
             clubDict.data[3],
             clubDict.data[4],
             clubDict.data[5],
             clubDict.data[6],
+            clubDict.data[7],
           ];
           if (cumulative[clubDict.team][3] != undefined) {
             cumulative[clubDict.team] = [
@@ -207,7 +206,7 @@
       const graphing = async function (totals, width, height) {
         var max = 0;
         for (const key in totals) {
-          var clubSpend = totals[key];
+          var clubSpend = totals[key][0];
           if (clubSpend > max) {
             max = clubSpend;
           }
@@ -247,6 +246,42 @@
         return [x, y];
       };
 
+      const circularAxes = async function (
+        totals,
+        width,
+        height,
+        innerRadius,
+        outerRadius
+      ) {
+        var max1 = 0;
+        var max2 = 0;
+        for (const key in totals) {
+          var clubSpend = totals[key][0];
+          var clubInc = totals[key][1];
+          if (clubSpend > max1) {
+            max1 = clubSpend;
+          }
+          if (clubInc > max2) {
+            max2 = clubInc;
+          }
+        }
+
+        var x = d3
+          .scaleBand()
+          .range([0, 2 * Math.PI]) // X axis goes from 0 to 2pi = all around the circle. If I stop at 1Pi, it will be around a half circle
+          .align(0) // This does nothing
+          .domain(Object.keys(totals)); // The domain of the X axis is the list of states.
+        var y = d3
+          .scaleRadial()
+          .range([innerRadius, outerRadius]) // Domain will be define later.
+          .domain([0, max1]); // Domain of Y is from 0 to the max seen in the data
+        var ybis = d3
+          .scaleRadial()
+          .range([innerRadius, 5]) // Domain will be defined later.
+          .domain([0, max2]);
+        return [x, y, ybis];
+      };
+
       // Function used to initilise the x and y axes on start
       const iniAxis = function (height, svg, x, y) {
         // add a bottom x axis to the graph, class it as 'xBot'
@@ -262,7 +297,7 @@
         svg.append("g").classed("yLeft", true).call(d3.axisLeft(y));
       };
 
-      const iniSVG = async function (season) {
+      const iniSVG = async function () {
         // set the dimensions and margins of the graph
         const margin = { top: 30, right: 30, bottom: 70, left: 100 };
         const width = 800 - margin.left - margin.right;
@@ -272,7 +307,6 @@
         var svg = d3
           .select("#dataviz")
           .append("svg")
-          .classed("barSVG", true)
           .attr("width", width + margin.left + margin.right)
           .attr("height", height + margin.top + margin.bottom)
           .append("g")
@@ -282,6 +316,36 @@
           );
 
         return [margin, width, height, svg];
+      };
+
+      const iniSVGCircular = async function () {
+        // set the dimensions and margins of the graph
+        const margin = { top: 400, right: 0, bottom: 0, left: 300 };
+        const width = 800 - margin.left - margin.right;
+        const height = 800 - margin.top - margin.bottom;
+
+        const innerRadius = 90;
+        const outerRadius = Math.min(width, height) / 2;
+
+        // append the svg object to the body of the page
+        var svg = d3
+          .select("#dataviz")
+          .append("svg")
+          .attr("width", width + margin.left + margin.right)
+          .attr("height", height + margin.top + margin.bottom)
+          .append("g")
+          .attr(
+            "transform",
+            "translate(" + margin.left + "," + margin.top + ")"
+          );
+
+          svg
+          .append("text")
+          .classed("text", true)
+          .attr("transform", "translate(0,"+ -300+")")
+          .text("All time Spend (green) v All time Income (red)");
+
+        return [margin, width, height, svg, innerRadius, outerRadius];
       };
 
       const iniSVGScatter = async function (season) {
@@ -311,9 +375,9 @@
           "Loses",
           "Spend",
           "Incoming Money",
-          "Net Spend",
           "Points",
           "League Place",
+          "Attendance",
         ];
 
         const seasonsArr = [
@@ -328,7 +392,6 @@
           "18-19",
           "19-20",
           "20-21",
-          "total",
         ];
 
         // add the options to the button
@@ -377,7 +440,7 @@
         var mapped = Object.keys(totals).map((d) => {
           return {
             club: d,
-            spend: totals[d],
+            spend: totals[d][0],
           };
         });
         let adjustment = mapped.length / 4;
@@ -397,7 +460,7 @@
           .attr("width", function (d) {
             return x(d.spend);
           })
-          .attr("fill", "red");
+          .attr("fill", "#bfe3ab");
 
         u.transition()
           .duration(1000)
@@ -411,7 +474,7 @@
           });
       };
 
-      let updateBar = async function (totals, key, svgArr, barsize) {
+      const updateBar = async function (totals, key, svgArr, barsize) {
         svgArr[3].selectAll("g").remove();
 
         let scales = await graphing(totals, svgArr[1], svgArr[2]);
@@ -426,6 +489,138 @@
           svgArr[3],
           svgArr[2],
           barsize
+        );
+      };
+
+      const drawCircle = function (
+        totals,
+        x,
+        y,
+        ybis,
+        svg,
+        height,
+        width,
+        innerRadius,
+        outerRadius
+      ) {
+        var mapped = Object.keys(totals).map((d) => {
+          return {
+            club: d,
+            spend: totals[d][0],
+            inc: totals[d][1],
+          };
+        });
+
+
+        svg
+          .append("g")
+          .selectAll("path")
+          .data(mapped)
+          .enter()
+          .append("path")
+          .attr("fill", "#69b3a2")
+          .attr(
+            "d",
+            d3
+              .arc() // imagine your doing a part of a donut plot
+              .innerRadius(innerRadius)
+              .outerRadius(function (d) {
+                return y(d.spend);
+              })
+              .startAngle(function (d) {
+                return x(d.club);
+              })
+              .endAngle(function (d) {
+                return x(d.club) + x.bandwidth();
+              })
+              .padAngle(0.01)
+              .padRadius(innerRadius)
+          );
+
+        svg
+          .append("g")
+          .selectAll("g")
+          .data(mapped)
+          .enter()
+          .append("g")
+          .attr("text-anchor", function (d) {
+            return (x(d.club) + x.bandwidth() / 2 + Math.PI) % (2 * Math.PI) <
+              Math.PI
+              ? "end"
+              : "start";
+          })
+          .attr("transform", function (d) {
+            return (
+              "rotate(" +
+              (((x(d.club) + x.bandwidth() / 2) * 180) / Math.PI - 90) +
+              ")" +
+              "translate(" +
+              (y(d.spend) + 10) +
+              ",0)"
+            );
+          })
+          .append("text")
+          .text(function (d) {
+            return d.club;
+          })
+          .attr("transform", function (d) {
+            return (x(d.club) + x.bandwidth() / 2 + Math.PI) % (2 * Math.PI) <
+              Math.PI
+              ? "rotate(180)"
+              : "rotate(0)";
+          })
+          .style("font-size", "11px")
+          .attr("alignment-baseline", "middle");
+
+        svg
+          .append("g")
+          .selectAll("path")
+          .data(mapped)
+          .enter()
+          .append("path")
+          .attr("fill", "red")
+          .attr(
+            "d",
+            d3
+              .arc() // imagine your doing a part of a donut plot
+              .innerRadius(function (d) {
+                return ybis(0);
+              })
+              .outerRadius(function (d) {
+                return ybis(d.inc);
+              })
+              .startAngle(function (d) {
+                return x(d.club);
+              })
+              .endAngle(function (d) {
+                return x(d.club) + x.bandwidth();
+              })
+              .padAngle(0.01)
+              .padRadius(innerRadius)
+          );
+      };
+
+      const updateCircle = async function (totals, svgArr) {
+        svgArr[3].selectAll("g").remove();
+
+        let scales = await circularAxes(
+          totals,
+          svgArr[1],
+          svgArr[2],
+          svgArr[4],
+          svgArr[5]
+        );
+
+        drawCircle(
+          totals,
+          scales[0],
+          scales[1],
+          scales[2],
+          svgArr[3],
+          svgArr[2],
+          svgArr[1],
+          svgArr[4],
+          svgArr[5]
         );
       };
 
@@ -447,7 +642,7 @@
             yVal: seasons[season][d][scatterY],
           };
         });
-        svg.selectAll("image").remove()
+        svg.selectAll("image").remove();
 
         var u = svg.selectAll("image").data(mapped);
 
@@ -466,13 +661,14 @@
           .attr("height", 35);
       };
 
-      let updateScatter = async function (
+      const updateScatter = async function (
         key,
         svgArr,
         scatterX,
         scatterY,
         icons
       ) {
+        console.log(scatterX);
         svgArr[3].selectAll("g").remove();
 
         let scales = await scatterAxes(
@@ -578,17 +774,16 @@
 
       const main = async function (spendPerClubPerSeason, csvArr) {
         let axisDict = {
-          "Spend": 0,
+          Spend: 0,
           "Incoming Money": 1,
-          "Net Spend": 2,
+          Wins: 3,
+          Draws: 4,
+          Loses: 5,
           "Goals For": 6,
           "Goals Against": 7,
-          "Wins": 3,
-          "Draws": 4,
-          "Loses": 5,
-          "Points": 8,
-        }
-
+          Points: 8,
+          Attendance: 9,
+        };
 
         let barsize = 10;
 
@@ -597,16 +792,15 @@
         let icons = await iniIcons();
 
         let seasonKey = csvArr[0].slice(68, 73);
-        let scatterX = 7;
-        let scatterY = 9;
+        let scatterX = 6;
+        let scatterY = 6;
 
         await dummyFunc(spendPerClubPerSeason);
 
         let svgArrScatter = await iniSVGScatter(seasonKey);
 
-        let svgArrBar = await iniSVG(seasonKey);
+        let svgArrBar = await iniSVG();
 
-      
         svgArrBar[3]
           .append("text")
           .classed("text", true)
@@ -622,9 +816,16 @@
           for (let team in seasons[key]) {
             if (seasons[key][team][0] > 0) {
               if (totals[team] != undefined) {
-                totals[team] = totals[team] + seasons[key][team][0];
+                totals[team][0] = totals[team][0] + seasons[key][team][0];
               } else {
-                totals[team] = seasons[key][team][0];
+                totals[team] = [seasons[key][team][0],0];
+              }
+            }
+            if (seasons[key][team][1] > 0) {
+              if (totals[team] != undefined) {
+                totals[team][1] = totals[team][1] + seasons[key][team][1];
+              } else {
+                totals[team][1] = [0,seasons[key][team][1]];
               }
             }
           }
@@ -649,26 +850,44 @@
           const option1 = d3.select(this).property("value");
           const option2 = d3.select("#xAxisButton").property("value");
           const option3 = d3.select("#yAxisButton").property("value");
-          updateScatter(option1, svgArrScatter, option2, option3, icons)
-          console.log(option1, option2, option3);
+          updateScatter(
+            option1,
+            svgArrScatter,
+            axisDict[option2],
+            axisDict[option3],
+            icons
+          );
         });
         d3.select("#xAxisButton").on("change", function (event, d) {
           // recover the option that has been chosen
           const option1 = d3.select("#timePeriod").property("value");
           const option2 = d3.select(this).property("value");
           const option3 = d3.select("#yAxisButton").property("value");
-          updateScatter(option1, svgArrScatter, option2, option3, icons)
-          console.log(option1, option2, option3);
+          updateScatter(
+            option1,
+            svgArrScatter,
+            axisDict[option2],
+            axisDict[option3],
+            icons
+          );
         });
         d3.select("#yAxisButton").on("change", function (event, d) {
           // recover the option that has been chosen
           const option1 = d3.select("#timePeriod").property("value");
           const option2 = d3.select("#xAxisButton").property("value");
           const option3 = d3.select(this).property("value");
-          updateScatter(option1, svgArrScatter, axisDict[option2], axisDict[option3], icons)
-
-          console.log(option1, option2, option3);
+          updateScatter(
+            option1,
+            svgArrScatter,
+            axisDict[option2],
+            axisDict[option3],
+            icons
+          );
         });
+
+        let svgArrCircular = await iniSVGCircular();
+        await updateCircle(totals, svgArrCircular);
+        console.log("end")
       };
 
       function sleep(ms) {
