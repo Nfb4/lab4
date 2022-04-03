@@ -10,25 +10,32 @@
   </style>
   <body>
     <!-- <script src="lab4.js"></script> -->
+    <!-- Initialize a select button -->
+    <select id="xAxisButton"></select>
+      <select id="yAxisButton"></select>
+      <select id="timePeriod"></select>
+    <div id="dataviz">
+      
+    </div>
 
     <script>
       // CSV of spend data, all seasons in one csv
       let spendPerClubPerSeason =
-        "https://raw.githubusercontent.com/Nfb4/Nfb4.github.io/main/lab4/csvs/spend.csv";
+        "https://raw.githubusercontent.com/Nfb4/lab4/master/csvs/spend.csv";
 
       // multiple csvs of stats for each individual season
       let csvArr = [
-        "https://raw.githubusercontent.com/Nfb4/Nfb4.github.io/main/lab4/csvs/seasons/prem10-11.csv",
-        "https://raw.githubusercontent.com/Nfb4/Nfb4.github.io/main/lab4/csvs/seasons/prem11-12.csv",
-        "https://raw.githubusercontent.com/Nfb4/Nfb4.github.io/main/lab4/csvs/seasons/prem12-13.csv",
-        "https://raw.githubusercontent.com/Nfb4/Nfb4.github.io/main/lab4/csvs/seasons/prem13-14.csv",
-        "https://raw.githubusercontent.com/Nfb4/Nfb4.github.io/main/lab4/csvs/seasons/prem14-15.csv",
-        "https://raw.githubusercontent.com/Nfb4/Nfb4.github.io/main/lab4/csvs/seasons/prem15-16.csv",
-        "https://raw.githubusercontent.com/Nfb4/Nfb4.github.io/main/lab4/csvs/seasons/prem16-17.csv",
-        "https://raw.githubusercontent.com/Nfb4/Nfb4.github.io/main/lab4/csvs/seasons/prem17-18.csv",
-        "https://raw.githubusercontent.com/Nfb4/Nfb4.github.io/main/lab4/csvs/seasons/prem18-19.csv",
-        "https://raw.githubusercontent.com/Nfb4/Nfb4.github.io/main/lab4/csvs/seasons/prem19-20.csv",
-        "https://raw.githubusercontent.com/Nfb4/Nfb4.github.io/main/lab4/csvs/seasons/prem20-21.csv",
+        "https://raw.githubusercontent.com/Nfb4/lab4/master/csvs/seasons/prem10-11.csv",
+        "https://raw.githubusercontent.com/Nfb4/lab4/master/csvs/seasons/prem11-12.csv",
+        "https://raw.githubusercontent.com/Nfb4/lab4/master/csvs/seasons/prem12-13.csv",
+        "https://raw.githubusercontent.com/Nfb4/lab4/master/csvs/seasons/prem13-14.csv",
+        "https://raw.githubusercontent.com/Nfb4/lab4/master/csvs/seasons/prem14-15.csv",
+        "https://raw.githubusercontent.com/Nfb4/lab4/master/csvs/seasons/prem15-16.csv",
+        "https://raw.githubusercontent.com/Nfb4/lab4/master/csvs/seasons/prem16-17.csv",
+        "https://raw.githubusercontent.com/Nfb4/lab4/master/csvs/seasons/prem17-18.csv",
+        "https://raw.githubusercontent.com/Nfb4/lab4/master/csvs/seasons/prem18-19.csv",
+        "https://raw.githubusercontent.com/Nfb4/lab4/master/csvs/seasons/prem19-20.csv",
+        "https://raw.githubusercontent.com/Nfb4/lab4/master/csvs/seasons/prem20-21.csv",
       ];
 
       // Dictionary to store totals data for each club
@@ -153,7 +160,7 @@
       };
 
       const dummyFuncSeason = async function (csvPath) {
-        let key = csvPath.slice(81, 86);
+        let key = csvPath.slice(68, 73);
         const csvData = await d3.csv(csvPath);
         for (i = 0; i < csvData.length; i++) {
           let clubDict = await processCsvEntrySeason(csvData[i]);
@@ -174,20 +181,18 @@
               cumulative[clubDict.team][0],
               cumulative[clubDict.team][1],
               cumulative[clubDict.team][2],
-              cumulative[clubDict.team][3] + clubDict[0],
-              cumulative[clubDict.team][4] + clubDict[1],
-              cumulative[clubDict.team][5] + clubDict[2],
-              cumulative[clubDict.team][6] + clubDict[3],
-              cumulative[clubDict.team][7] + clubDict[4],
-              cumulative[clubDict.team][8] + clubDict[5],
-              cumulative[clubDict.team][2] + clubDict[6],
+              cumulative[clubDict.team][3] + clubDict[1],
+              cumulative[clubDict.team][4] + clubDict[2],
+              cumulative[clubDict.team][5] + clubDict[3],
+              cumulative[clubDict.team][6] + clubDict[4],
+              cumulative[clubDict.team][7] + clubDict[5],
+              cumulative[clubDict.team][8] + clubDict[6],
             ];
           } else {
             cumulative[clubDict.team] = [
               cumulative[clubDict.team][0],
               cumulative[clubDict.team][1],
               cumulative[clubDict.team][2],
-              clubDict.data[0],
               clubDict.data[1],
               clubDict.data[2],
               clubDict.data[3],
@@ -215,7 +220,6 @@
         return [x, y];
       };
 
-
       const scatterAxes = async function (season, xType, yType, width, height) {
         var maxX = 0;
         var maxY = 0;
@@ -229,10 +233,16 @@
             maxY = clubY;
           }
         }
-        var y = d3.scaleLinear().domain([0,maxY]).range([height, 0]);
+        var y = d3
+          .scaleLinear()
+          .domain([0, maxY + 5])
+          .range([height, 0]);
 
         // Define the y scale so that the values are proportionate
-        var x = d3.scaleLinear().domain([0, maxX]).range([0, width]);
+        var x = d3
+          .scaleLinear()
+          .domain([0, maxX + 5])
+          .range([0, width]);
 
         return [x, y];
       };
@@ -260,9 +270,9 @@
 
         // append the svg object to the body of the page
         var svg = d3
-          .select("body")
-          .append("div")
+          .select("#dataviz")
           .append("svg")
+          .classed("barSVG", true)
           .attr("width", width + margin.left + margin.right)
           .attr("height", height + margin.top + margin.bottom)
           .append("g")
@@ -270,6 +280,94 @@
             "transform",
             "translate(" + margin.left + "," + margin.top + ")"
           );
+
+        return [margin, width, height, svg];
+      };
+
+      const iniSVGScatter = async function (season) {
+        // set the dimensions and margins of the graph
+        const margin = { top: 30, right: 30, bottom: 70, left: 100 };
+        const width = 800 - margin.left - margin.right;
+        const height = 800 - margin.top - margin.bottom;
+
+        // append the svg object to the body of the page
+        var svg = d3
+          .select("#dataviz")
+          .append("svg")
+          .classed("scatterSVG", true)
+          .attr("width", width + margin.left + margin.right)
+          .attr("height", height + margin.top + margin.bottom)
+          .append("g")
+          .attr(
+            "transform",
+            "translate(" + margin.left + "," + margin.top + ")"
+          );
+
+        const axisValues = [
+          "Goals For",
+          "Goals Against",
+          "Wins",
+          "Draws",
+          "Loses",
+          "Spend",
+          "Incoming Money",
+          "Net Spend",
+          "Points",
+          "League Place",
+        ];
+
+        const seasonsArr = [
+          "10-11",
+          "11-12",
+          "12-13",
+          "13-14",
+          "14-15",
+          "15-16",
+          "16-17",
+          "17-18",
+          "18-19",
+          "19-20",
+          "20-21",
+          "total",
+        ];
+
+        // add the options to the button
+        d3.select("#xAxisButton")
+          .selectAll("myOptions")
+          .data(axisValues)
+          .enter()
+          .append("option")
+          .text(function (d) {
+            return d;
+          }) // text showed in the menu
+          .attr("value", function (d) {
+            return d;
+          }); // corresponding value returned by the button
+
+        // add the options to the button
+        d3.select("#yAxisButton")
+          .selectAll("myOptions")
+          .data(axisValues)
+          .enter()
+          .append("option")
+          .text(function (d) {
+            return d;
+          }) // text showed in the menu
+          .attr("value", function (d) {
+            return d;
+          }); // corresponding value returned by the button
+
+        d3.select("#timePeriod")
+          .selectAll("myOptions")
+          .data(seasonsArr)
+          .enter()
+          .append("option")
+          .text(function (d) {
+            return d;
+          }) // text showed in the menu
+          .attr("value", function (d) {
+            return d;
+          }); // corresponding value returned by the button
 
         return [margin, width, height, svg];
       };
@@ -315,15 +413,10 @@
 
       let updateBar = async function (totals, key, svgArr, barsize) {
         svgArr[3].selectAll("g").remove();
-        
+
         let scales = await graphing(totals, svgArr[1], svgArr[2]);
 
-        iniAxis(
-          svgArr[2],
-          svgArr[3],
-          scales[0],
-          scales[1]
-        );
+        iniAxis(svgArr[2], svgArr[3], scales[0], scales[1]);
 
         drawBars(
           key,
@@ -336,7 +429,16 @@
         );
       };
 
-      const drawScatter = function (season, x, y, svg, height, scatterX, scatterY) {
+      const drawScatter = function (
+        season,
+        x,
+        y,
+        svg,
+        height,
+        scatterX,
+        scatterY,
+        icons
+      ) {
         // Iterate through the dataset and add rectangles for each item
         var mapped = Object.keys(seasons[season]).map((d) => {
           return {
@@ -345,33 +447,42 @@
             yVal: seasons[season][d][scatterY],
           };
         });
+        svg.selectAll("image").remove()
 
-        var u = svg.selectAll("dot").data(mapped);
+        var u = svg.selectAll("image").data(mapped);
 
         u.enter()
-          .append("circle")
-          .attr("cx", function (d) {
+          .append("image")
+          .attr("xlink:href", function (d) {
+            return icons[d.club];
+          })
+          .attr("x", function (d) {
             return x(d.xVal);
           })
-          .attr("cy", function (d) {
+          .attr("y", function (d) {
             return y(d.yVal);
           })
-          .attr("r", 5)
-          .attr("fill", "red");
-
-        
+          .attr("width", 35)
+          .attr("height", 35);
       };
 
-      let updateScatter = async function (key, svgArr, scatterX, scatterY) {
+      let updateScatter = async function (
+        key,
+        svgArr,
+        scatterX,
+        scatterY,
+        icons
+      ) {
         svgArr[3].selectAll("g").remove();
-        
-        let scales = await scatterAxes(key, scatterX, scatterY, svgArr[1], svgArr[2]);
-        iniAxis(
-          svgArr[2],
-          svgArr[3],
-          scales[0],
-          scales[1]
+
+        let scales = await scatterAxes(
+          key,
+          scatterX,
+          scatterY,
+          svgArr[1],
+          svgArr[2]
         );
+        iniAxis(svgArr[2], svgArr[3], scales[0], scales[1]);
         drawScatter(
           key,
           scales[0],
@@ -379,34 +490,133 @@
           svgArr[3],
           svgArr[2],
           scatterX,
-          scatterY
+          scatterY,
+          icons
         );
       };
 
+      const iniIcons = async function () {
+        // Icons sourced from
+        // https://iconarchive.com/show/english-football-club-icons-by-giannis-zographos.html
+        let icons = {
+          Arsenal:
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Arsenal%20FC.ico",
+          "Aston Villa":
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Aston%20Villa.ico",
+          "Birmingham City":
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Birmingham%20City.ico",
+          Blackburn:
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Blackburn%20Rovers.ico",
+          Blackpool:
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Blackpool%20FC.ico",
+          Bolton:
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Bolton%20Wanderers.ico",
+          Bournemouth:
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Bournemouth.ico",
+          Brighton:
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Brighton%20%26%20Hove%20Albion.ico",
+          Burnley:
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Burnley%20FC.ico",
+          "Cardiff City":
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Cardiff%20City.ico",
+          Chelsea:
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Chelsea%20FC.ico",
+          "Crystal Palace":
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Crystal%20Palace.ico",
+          Everton:
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Everton%20FC.ico",
+          Fulham:
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Fulham%20FC.ico",
+          Huddersfield:
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Huddersfield%20Town.ico",
+          "Hull City":
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Hull%20City.ico",
+          "Leeds United":
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Leeds%20United.ico",
+          "Leicester City":
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Leicester%20City.ico",
+          Liverpool:
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Liverpool%20FC.ico",
+          "Manchester City":
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Manchester%20City.ico",
+          "Manchester Utd":
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Manchester%20United.ico",
+          Middlesbrough:
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Middlesbrough%20FC.ico",
+          "Newcastle Utd":
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Newcastle%20United.ico",
+          "Norwich City":
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Norwich%20City.ico",
+          QPR: "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Queens%20Park%20Rangers.ico",
+          Reading:
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Reading%20FC.ico",
+          "Sheffield Utd":
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Sheffield%20United.ico",
+          Southhampton:
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Southampton%20FC.ico",
+          "Stoke City":
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Stoke%20City.ico",
+          Sunderland:
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Sunderland%20AFC.ico",
+          "Swansea City":
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Swansea%20City.ico",
+          Tottenham:
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Tottenham%20Hotspur.ico",
+          Watford:
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Watford%20FC.ico",
+          "West Brom":
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/West%20Bromwich%20Albion.ico",
+          "West Ham":
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/West%20Ham%20United.ico",
+          "Wigan Athletic":
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Wigan%20Athletic.ico",
+          Wolves:
+            "https://raw.githubusercontent.com/Nfb4/lab4/master/icons/Wolverhampton%20Wanderers.ico",
+        };
+        return icons;
+      };
+
       const main = async function (spendPerClubPerSeason, csvArr) {
+        let axisDict = {
+          "Spend": 0,
+          "Incoming Money": 1,
+          "Net Spend": 2,
+          "Goals For": 6,
+          "Goals Against": 7,
+          "Wins": 3,
+          "Draws": 4,
+          "Loses": 5,
+          "Points": 8,
+        }
+
+
         let barsize = 10;
 
         let totals = {};
 
-        let seasonKey = csvArr[0].slice(81, 86);
+        let icons = await iniIcons();
+
+        let seasonKey = csvArr[0].slice(68, 73);
         let scatterX = 7;
         let scatterY = 9;
 
         await dummyFunc(spendPerClubPerSeason);
+
+        let svgArrScatter = await iniSVGScatter(seasonKey);
+
         let svgArrBar = await iniSVG(seasonKey);
 
+      
         svgArrBar[3]
           .append("text")
           .classed("text", true)
-          .attr("transform", "translate(" + svgArrBar[1]/2 +", 0)")
+          .attr("transform", "translate(" + svgArrBar[1] / 2 + ", 0)")
           .attr("text-anchor", "middle")
-          .text("Premier league spend from 10-11 to " + seasonKey)
-
-        let svgArrScatter = await iniSVG(seasonKey);
+          .text("Premier league spend from 10-11 to " + seasonKey);
 
         let sleepVal = 0;
         for (let i = 0; i < csvArr.length; i++) {
-          let key = csvArr[i].slice(81, 86);
+          let key = csvArr[i].slice(68, 73);
 
           await dummyFuncSeason(csvArr[i]);
           for (let team in seasons[key]) {
@@ -418,16 +628,48 @@
               }
             }
           }
+
           await sleep(sleepVal);
           sleepVal = 0;
-          svgArrBar[3].selectAll("text")
-          .text("Premier league spend from 10-11 to " + key)
+          svgArrBar[3]
+            .selectAll("text")
+            .text("Premier league spend from 10-11 to " + key);
           await updateBar(totals, key, svgArrBar, barsize);
         }
-        await updateScatter(seasonKey, svgArrScatter, scatterX, scatterY)
+        await updateScatter(
+          seasonKey,
+          svgArrScatter,
+          scatterX,
+          scatterY,
+          icons
+        );
+
+        d3.select("#timePeriod").on("change", function (event, d) {
+          // recover the option that has been chosen
+          const option1 = d3.select(this).property("value");
+          const option2 = d3.select("#xAxisButton").property("value");
+          const option3 = d3.select("#yAxisButton").property("value");
+          updateScatter(option1, svgArrScatter, option2, option3, icons)
+          console.log(option1, option2, option3);
+        });
+        d3.select("#xAxisButton").on("change", function (event, d) {
+          // recover the option that has been chosen
+          const option1 = d3.select("#timePeriod").property("value");
+          const option2 = d3.select(this).property("value");
+          const option3 = d3.select("#yAxisButton").property("value");
+          updateScatter(option1, svgArrScatter, option2, option3, icons)
+          console.log(option1, option2, option3);
+        });
+        d3.select("#yAxisButton").on("change", function (event, d) {
+          // recover the option that has been chosen
+          const option1 = d3.select("#timePeriod").property("value");
+          const option2 = d3.select("#xAxisButton").property("value");
+          const option3 = d3.select(this).property("value");
+          updateScatter(option1, svgArrScatter, axisDict[option2], axisDict[option3], icons)
+
+          console.log(option1, option2, option3);
+        });
       };
-      
-      
 
       function sleep(ms) {
         return new Promise((resolve) => setTimeout(resolve, ms));
