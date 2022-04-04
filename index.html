@@ -18,7 +18,9 @@
     <select id="xAxisButton"></select>
     <select id="yAxisButton"></select>
     <select id="timePeriod"></select>
-    <div id="dataviz"></div>
+    <div id="scatter"></div>
+    <div id="circular"></div>
+
 
     <script>
       // CSV of spend data, all seasons in one csv
@@ -333,7 +335,7 @@
 
         // append the svg object to the body of the page
         var svg = d3
-          .select("#dataviz")
+          .select("#circular")
           .append("svg")
           .attr("width", width + margin.left + margin.right)
           .attr("height", height + margin.top + margin.bottom)
@@ -352,7 +354,7 @@
         return [margin, width, height, svg, innerRadius, outerRadius];
       };
 
-      const iniSVGScatter = async function (season) {
+      const iniSVGScatter = async function (season, seasonsArr) {
         // set the dimensions and margins of the graph
         const margin = { top: 30, right: 30, bottom: 70, left: 100 };
         const width = 800 - margin.left - margin.right;
@@ -360,7 +362,7 @@
 
         // append the svg object to the body of the page
         var svg = d3
-          .select("#dataviz")
+          .select("#scatter")
           .append("svg")
           .classed("scatterSVG", true)
           .attr("width", width + margin.left + margin.right)
@@ -380,22 +382,7 @@
           "Spend",
           "Incoming Money",
           "Points",
-          "League Place",
           "Attendance",
-        ];
-
-        const seasonsArr = [
-          "10-11",
-          "11-12",
-          "12-13",
-          "13-14",
-          "14-15",
-          "15-16",
-          "16-17",
-          "17-18",
-          "18-19",
-          "19-20",
-          "20-21",
         ];
 
         // add the options to the button
@@ -641,6 +628,7 @@
       ) {
         // Iterate through the dataset and add rectangles for each item
         var mapped = Object.keys(seasons[season]).map((d) => {
+          console.log(seasons[season][d][scatterX])
           return {
             club: d,
             xVal: seasons[season][d][scatterX],
@@ -654,6 +642,8 @@
         u.enter()
           .append("image")
           .attr("xlink:href", function (d) {
+            console.log(d)
+
             return icons[d.club];
           })
           .attr("x", function (d) {
@@ -673,7 +663,6 @@
         scatterY,
         icons
       ) {
-        console.log(scatterX);
         svgArr[3].selectAll("g").remove();
 
         let scales = await scatterAxes(
@@ -934,8 +923,8 @@
         let icons = await iniIcons();
 
         let seasonKey = csvArr[0].slice(68, 73);
-        let scatterX = 0;
-        let scatterY = 0;
+        let scatterX = axisDict['Goals For'];
+        let scatterY = axisDict['Goals For'];
 
         let seasonsArr2 = seasonsArr.slice(1);
 
@@ -943,11 +932,11 @@
 
         await dummyFunc(spendPerClubPerSeason);
 
-        let svgArrScatter = await iniSVGScatter(seasonKey);
+        let svgArrScatter = await iniSVGScatter(seasonKey, seasonsArr);
 
         let svgArrBar = await iniSVG();
 
-        iniBarChart(svgArrBar, "10-11", "20-21", csvArr, totals, barsize)
+        await iniBarChart(svgArrBar, "10-11", "20-21", csvArr, totals, barsize)
 
         await updateScatter(
           seasonKey,
@@ -970,6 +959,21 @@
             icons
           );
         });
+
+        d3.select("#yAxisButton").on("change", function (event, d) {
+          // recover the option that has been chosen
+          const option1 = d3.select("#timePeriod").property("value");
+          const option2 = d3.select("#xAxisButton").property("value");
+          const option3 = d3.select(this).property("value");
+          updateScatter(
+            option1,
+            svgArrScatter,
+            axisDict[option2],
+            axisDict[option3],
+            icons
+          );
+        });
+
         d3.select("#xAxisButton").on("change", function (event, d) {
           // recover the option that has been chosen
           const option1 = d3.select("#timePeriod").property("value");
@@ -983,6 +987,7 @@
             icons
           );
         });
+        
         d3.select("#start").on("change", function (event, d) {
           // recover the option that has been chosen
           const option = d3.select(this).property("value");
@@ -1006,7 +1011,6 @@
 
         let svgArrCircular = await iniSVGCircular();
         await updateCircle(totals, svgArrCircular);
-        console.log("end");
       };
       function removeOptions(selectElement) {
         var i,
