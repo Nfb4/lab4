@@ -11,6 +11,9 @@
   <body>
     <!-- <script src="lab4.js"></script> -->
     <!-- Initialize a select button -->
+    <div class="radarChart"></div>
+
+    <script src="radarChart.js"></script>
     <select id="start"></select>
     <select id="end"></select>
     <button id="barButton">Update</button>
@@ -21,7 +24,7 @@
     <div id="scatter"></div>
     <div id="circular"></div>
 
-
+    
     <script>
       // CSV of spend data, all seasons in one csv
       let spendPerClubPerSeason =
@@ -43,7 +46,14 @@
       ];
 
       // Dictionary to store totals data for each club
-      let cumulative = {};
+      let cumulative = {
+        Arsenal: [0],
+        Chelsea: [0],
+        "Manchester Utd": [0],
+        "Manchester City": [0],
+        Liverpool: [0],
+        Tottenham: [0],
+      };
 
       // Dictionary of dictionaries for each club in each season
       let seasons = {
@@ -127,25 +137,28 @@
             clubDict.inc,
             clubDict.net,
           ];
-
-          if (cumulative[clubDict.team] != undefined) {
-            cumulative[clubDict.team] = [
-              cumulative[clubDict.team][0] + clubDict.spend,
-              cumulative[clubDict.team][1] + clubDict.inc,
-              cumulative[clubDict.team][0] +
-                clubDict.spend -
-                (cumulative[clubDict.team][1] + clubDict.inc),
-            ];
-          } else {
-            // If it is undefined simply set the values
-            cumulative[clubDict.team] = [
-              clubDict.spend,
-              clubDict.inc,
-              clubDict.net,
-            ];
+          try {
+            if (cumulative[clubDict.team] != undefined) {
+              if (cumulative[clubDict.team][0] > 0) {
+                cumulative[clubDict.team] = [
+                  cumulative[clubDict.team][0] + clubDict.spend,
+                  cumulative[clubDict.team][1] + clubDict.inc,
+                  cumulative[clubDict.team][0] +
+                    clubDict.spend -
+                    (cumulative[clubDict.team][1] + clubDict.inc),
+                ];
+              } else {
+                cumulative[clubDict.team] = [
+                  clubDict.spend,
+                  clubDict.inc,
+                  clubDict.net,
+                ];
+              }
+            }
+          } catch (err) {}
           }
-        }
-      };
+          
+        };
 
       const processCsvEntrySeason = async function (csvLine) {
         let entryDict = {};
@@ -181,31 +194,35 @@
             clubDict.data[6],
             clubDict.data[7],
           ];
-          if (cumulative[clubDict.team][3] != undefined) {
-            cumulative[clubDict.team] = [
-              cumulative[clubDict.team][0],
-              cumulative[clubDict.team][1],
-              cumulative[clubDict.team][2],
-              cumulative[clubDict.team][3] + clubDict[1],
-              cumulative[clubDict.team][4] + clubDict[2],
-              cumulative[clubDict.team][5] + clubDict[3],
-              cumulative[clubDict.team][6] + clubDict[4],
-              cumulative[clubDict.team][7] + clubDict[5],
-              cumulative[clubDict.team][8] + clubDict[6],
-            ];
-          } else {
-            cumulative[clubDict.team] = [
-              cumulative[clubDict.team][0],
-              cumulative[clubDict.team][1],
-              cumulative[clubDict.team][2],
-              clubDict.data[1],
-              clubDict.data[2],
-              clubDict.data[3],
-              clubDict.data[4],
-              clubDict.data[5],
-              clubDict.data[6],
-            ];
-          }
+          try {
+            if (cumulative[clubDict.team] != undefined) {
+              if (cumulative[clubDict.team][3] != undefined) {
+                cumulative[clubDict.team] = [
+                  cumulative[clubDict.team][0],
+                  cumulative[clubDict.team][1],
+                  cumulative[clubDict.team][2],
+                  cumulative[clubDict.team][3] + clubDict.data[1],
+                  cumulative[clubDict.team][4] + clubDict.data[2],
+                  cumulative[clubDict.team][5] + clubDict.data[3],
+                  cumulative[clubDict.team][6] + clubDict.data[4],
+                  cumulative[clubDict.team][7] + clubDict.data[5],
+                  cumulative[clubDict.team][8] + clubDict.data[6],
+                ];
+              } else {
+                cumulative[clubDict.team] = [
+                  cumulative[clubDict.team][0],
+                  cumulative[clubDict.team][1],
+                  cumulative[clubDict.team][2],
+                  clubDict.data[1],
+                  clubDict.data[2],
+                  clubDict.data[3],
+                  clubDict.data[4],
+                  clubDict.data[5],
+                  clubDict.data[6],
+                ];
+              }
+            }
+          } catch (err) {}
         }
       };
 
@@ -464,7 +481,7 @@
             return x(d.spend);
           });
 
-          u.exit().remove();
+        u.exit().remove();
       };
 
       const updateBar = async function (totals, key, svgArr, barsize) {
@@ -628,7 +645,7 @@
       ) {
         // Iterate through the dataset and add rectangles for each item
         var mapped = Object.keys(seasons[season]).map((d) => {
-          console.log(seasons[season][d][scatterX])
+          console.log(seasons[season][d][scatterX]);
           return {
             club: d,
             xVal: seasons[season][d][scatterX],
@@ -642,7 +659,7 @@
         u.enter()
           .append("image")
           .attr("xlink:href", function (d) {
-            console.log(d)
+            console.log(d);
 
             return icons[d.club];
           })
@@ -805,15 +822,24 @@
           }); // corresponding value returned by the button
       };
 
-      const iniBarChart = async function(svgArrBar, seasonKey1, seasonKey2, csvArr, totals, barsize){
-        svgArrBar[3].selectAll("text").remove()
+      const iniBarChart = async function (
+        svgArrBar,
+        seasonKey1,
+        seasonKey2,
+        csvArr,
+        totals,
+        barsize
+      ) {
+        svgArrBar[3].selectAll("text").remove();
 
         svgArrBar[3]
           .append("text")
           .classed("text", true)
           .attr("transform", "translate(" + svgArrBar[1] / 2 + ", 0)")
           .attr("text-anchor", "middle")
-          .text("Premier league spend from "+  seasonKey1+ " to " + seasonKey2);
+          .text(
+            "Premier league spend from " + seasonKey1 + " to " + seasonKey2
+          );
 
         let sleepVal = 0;
         for (let i = 0; i < csvArr.length; i++) {
@@ -844,19 +870,27 @@
             .text("Premier league spend from 10-11 to " + key);
           await updateBar(totals, key, svgArrBar, barsize);
         }
-      }
+      };
 
-      const iniBarChartUpdate = async function(svgArrBar, seasonKey1, seasonKey2, csvArr, barsize){
-        totals = {}
+      const iniBarChartUpdate = async function (
+        svgArrBar,
+        seasonKey1,
+        seasonKey2,
+        csvArr,
+        barsize
+      ) {
+        totals = {};
 
-        svgArrBar[3].selectAll("text").remove()
+        svgArrBar[3].selectAll("text").remove();
 
         svgArrBar[3]
           .append("text")
           .classed("text", true)
           .attr("transform", "translate(" + svgArrBar[1] / 2 + ", 0)")
           .attr("text-anchor", "middle")
-          .text("Premier league spend from "+  seasonKey1+ " to " + seasonKey2);
+          .text(
+            "Premier league spend from " + seasonKey1 + " to " + seasonKey2
+          );
 
         let sleepVal = 300;
         for (let i = 0; i < csvArr.length; i++) {
@@ -884,10 +918,52 @@
           sleepVal = 1500;
           svgArrBar[3]
             .selectAll("text")
-            .text("Premier league spend from " +  seasonKey1 + " to " + key);
+            .text("Premier league spend from " + seasonKey1 + " to " + key);
           await updateBar(totals, key, svgArrBar, barsize);
         }
-      }
+      };
+
+      const radar = function () {
+        /* Radar chart design created by Nadieh Bremer - VisualCinnamon.com */
+
+        //////////////////////////////////////////////////////////////
+        //////////////////////// Set-Up //////////////////////////////
+        //////////////////////////////////////////////////////////////
+
+        var margin = { top: 100, right: 100, bottom: 100, left: 100 },
+          width =
+            Math.min(700, window.innerWidth - 10) - margin.left - margin.right,
+          height = Math.min(
+            width,
+            window.innerHeight - margin.top - margin.bottom - 20
+          );
+
+        //////////////////////////////////////////////////////////////
+        //////////////////// Draw the Chart //////////////////////////
+        //////////////////////////////////////////////////////////////
+
+        var color = d3.scaleOrdinal().range(["#5bc8ef", "#5b60ef", "#b2c9c9", "#f31e56", "#f74018", "#56da41" ]);
+
+        var radarChartOptions = {
+          w: width,
+          h: height,
+          margin: margin,
+          maxValue: 0.5,
+          levels: 5,
+          roundStrokes: true,
+          color: color,
+        };
+        let key = '16-17';
+        let big6Key = ['Arsenal', 'Chelsea', 'Manchester Utd', 'Manchester City', 'Liverpool', 'Tottenham'];
+        let data = [];
+
+        for(let i=0; i<big6Key.length;i++){
+          data[big6Key[i]] = seasons[key][big6Key[i]]
+        }
+
+        //Call function to draw the Radar chart
+        RadarChart(".radarChart", data, radarChartOptions);
+      };
 
       const main = async function (spendPerClubPerSeason, csvArr) {
         let axisDict = {
@@ -903,18 +979,18 @@
         };
 
         const seasonsArr = [
-            "10-11",
-            "11-12",
-            "12-13",
-            "13-14",
-            "14-15",
-            "15-16",
-            "16-17",
-            "17-18",
-            "18-19",
-            "19-20",
-            "20-21",
-          ];
+          "10-11",
+          "11-12",
+          "12-13",
+          "13-14",
+          "14-15",
+          "15-16",
+          "16-17",
+          "17-18",
+          "18-19",
+          "19-20",
+          "20-21",
+        ];
 
         let barsize = 10;
 
@@ -923,8 +999,8 @@
         let icons = await iniIcons();
 
         let seasonKey = csvArr[0].slice(68, 73);
-        let scatterX = axisDict['Goals For'];
-        let scatterY = axisDict['Goals For'];
+        let scatterX = axisDict["Goals For"];
+        let scatterY = axisDict["Goals For"];
 
         let seasonsArr2 = seasonsArr.slice(1);
 
@@ -936,7 +1012,7 @@
 
         let svgArrBar = await iniSVG();
 
-        await iniBarChart(svgArrBar, "10-11", "20-21", csvArr, totals, barsize)
+        await iniBarChart(svgArrBar, "10-11", "20-21", csvArr, totals, barsize);
 
         await updateScatter(
           seasonKey,
@@ -987,30 +1063,38 @@
             icons
           );
         });
-        
+
         d3.select("#start").on("change", function (event, d) {
           // recover the option that has been chosen
           const option = d3.select(this).property("value");
 
           let index = seasonsArr.findIndex((season) => season === option);
 
-          removeOptions(document.getElementById('end'));
+          removeOptions(document.getElementById("end"));
           iniButtonsSingle(seasonsArr.slice(index));
         });
 
-        d3.select("#barButton").on("click", function(event, d){
-          const start = d3.select('#start').property("value");
-          const end = d3.select('#end').property("value");
+        d3.select("#barButton").on("click", function (event, d) {
+          const start = d3.select("#start").property("value");
+          const end = d3.select("#end").property("value");
           let indexStart = seasonsArr.findIndex((season) => season === start);
           let indexEnd = seasonsArr.findIndex((season) => season === end);
-          iniBarChartUpdate(svgArrBar, start, end, csvArr.slice(indexStart,indexEnd+1), barsize)
-          removeOptions(document.getElementById('start'));
-          removeOptions(document.getElementById('end'));
+          iniBarChartUpdate(
+            svgArrBar,
+            start,
+            end,
+            csvArr.slice(indexStart, indexEnd + 1),
+            barsize
+          );
+          removeOptions(document.getElementById("start"));
+          removeOptions(document.getElementById("end"));
           iniButtons(seasonsArr, seasonsArr.slice(indexEnd));
-        })
+        });
 
         let svgArrCircular = await iniSVGCircular();
         await updateCircle(totals, svgArrCircular);
+
+        radar();
       };
       function removeOptions(selectElement) {
         var i,
