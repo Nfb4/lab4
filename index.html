@@ -16,15 +16,19 @@
     <select id="end"></select>
     <button id="barButton">Update</button>
     <div id="barchart"></div>
+    <div id="buttons">
     <select id="xAxisButton"></select>
     <select id="yAxisButton"></select>
     <select id="timePeriod"></select>
+    Click a team crest to load the radar chart with that teams current season
+
+  </div>
     <div id="scatter"></div>
-    <div id="circular"></div>
+
     <div class="radarChart"></div>
 
+    <div id="circular"></div>
     <script src="radarChart.js"></script>
-
     <script>
       // CSV of spend data, all seasons in one csv
       let spendPerClubPerSeason =
@@ -671,9 +675,11 @@
           .on("click", function (d) {
             console.log(d3.select("#timePeriod").property("value"));
             console.log(getKeyByValue(icons, d.target.href.baseVal));
-            let data2 = 
-              seasons[d3.select("#timePeriod").property("value")][getKeyByValue(icons, d.target.href.baseVal)];
-              console.log(data2);
+            let data2 =
+              seasons[d3.select("#timePeriod").property("value")][
+                getKeyByValue(icons, d.target.href.baseVal)
+              ];
+            console.log(data2);
             RadarChart(
               ".radarChart",
               data2,
@@ -693,6 +699,24 @@
         icons
       ) {
         svgArr[3].selectAll("g").remove();
+        svgArr[3].selectAll("text").remove();
+
+        svgArr[3]
+          .append("text")
+          .classed("xAxisText", true)
+          .attr(
+            "transform",
+            "translate(" + svgArr[1] / 2 + "," + (svgArr[2] + 35) + " )"
+          )
+          .attr("text-anchor", "middle")
+          .text(d3.select("#xAxisButton").property("value"));
+
+        svgArr[3]
+          .append("text")
+          .classed("instruction", true)
+          .attr("transform", "translate(-60," + svgArr[2] / 2 + " )")
+          .attr("text-anchor", "middle")
+          .text(d3.select("#yAxisButton").property("value"));
 
         let scales = await scatterAxes(
           key,
@@ -846,12 +870,22 @@
 
         svgArrBar[3]
           .append("text")
-          .classed("text", true)
+          .classed("barTitle", true)
           .attr("transform", "translate(" + svgArrBar[1] / 2 + ", 0)")
           .attr("text-anchor", "middle")
           .text(
             "Premier league spend from " + seasonKey1 + " to " + seasonKey2
           );
+
+        svgArrBar[3]
+          .append("text")
+          .classed("xAxisText", true)
+          .attr(
+            "transform",
+            "translate(" + svgArrBar[1] / 2 + "," + (svgArrBar[2] + 35) + " )"
+          )
+          .attr("text-anchor", "middle")
+          .text("Spend - (£ - Millions)");
 
         let sleepVal = 0;
         for (let i = 0; i < csvArr.length; i++) {
@@ -877,9 +911,7 @@
 
           await sleep(sleepVal);
           sleepVal = 0;
-          svgArrBar[3]
-            .selectAll("text")
-            .text("Premier league spend from 10-11 to " + key);
+
           await updateBar(totals, key, svgArrBar, barsize);
         }
       };
@@ -893,13 +925,8 @@
       ) {
         totals = {};
 
-        svgArrBar[3].selectAll("text").remove();
-
         svgArrBar[3]
-          .append("text")
-          .classed("text", true)
-          .attr("transform", "translate(" + svgArrBar[1] / 2 + ", 0)")
-          .attr("text-anchor", "middle")
+          .select(".barTitle")
           .text(
             "Premier league spend from " + seasonKey1 + " to " + seasonKey2
           );
@@ -929,7 +956,7 @@
           await sleep(sleepVal);
           sleepVal = 1500;
           svgArrBar[3]
-            .selectAll("text")
+            .selectAll(".barTitle")
             .text("Premier league spend from " + seasonKey1 + " to " + key);
           await updateBar(totals, key, svgArrBar, barsize);
         }
