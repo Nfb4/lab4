@@ -23,18 +23,16 @@ function RadarChart(id, input, options) {
 	}; 
     let data = []
 	
-    let big6Key = ['Arsenal', 'Chelsea', 'Manchester Utd', 'Manchester City', 'Liverpool', 'Tottenham']
 
-    for(let i=0;i<big6Key.length;i++){
-        data[i] = [
-            {axis: "Wins", value:input[big6Key[i]][3]},
-            {axis: "Draws", value:input[big6Key[i]][4]},
-            {axis: "Loses", value:input[big6Key[i]][5]},
-            {axis: "Goals For", value:input[big6Key[i]][6]},
-            {axis: "Goals Against", value:input[big6Key[i]][7]},
-            {axis: "Points", value:input[big6Key[i]][8]}
+        data = [
+            {axis: "Wins", value:input[3]},
+            {axis: "Draws", value:input[4]},
+            {axis: "Loses", value:input[5]},
+            {axis: "Goals For", value:input[6]},
+            {axis: "Goals Against", value:input[7]},
+            {axis: "Points", value:input[8]}
         ]
-    }
+    
 
 	//Put all of the options into a variable called cfg
 	if('undefined' !== typeof options){
@@ -44,9 +42,9 @@ function RadarChart(id, input, options) {
 	}//if
 	
 	//If the supplied maxValue is smaller than the actual one, replace by the max in the data
-	var maxValue = Math.max(cfg.maxValue, d3.max(data, function(i){return d3.max(i.map(function(o){return o.value;}))}));
+	var maxValue = input[8];
 
-	var allAxis = (data[0].map(function(i, j){return i.axis})),	//Names of each axis
+	var allAxis = (data.map(function(i, j){return i.axis})),	//Names of each axis
 		total = allAxis.length,					//The number of different axes
 		radius = Math.min(cfg.w/2, cfg.h/2), 	//Radius of the outermost circle
 		Format = d3.format('%'),			 	//Percentage formatting

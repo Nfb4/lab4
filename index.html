@@ -954,12 +954,9 @@
           color: color,
         };
         let key = '16-17';
-        let big6Key = ['Arsenal', 'Chelsea', 'Manchester Utd', 'Manchester City', 'Liverpool', 'Tottenham'];
-        let data = [];
+        let club = 'Liverpool'
+        let data = seasons[key][club];
 
-        for(let i=0; i<big6Key.length;i++){
-          data[big6Key[i]] = seasons[key][big6Key[i]]
-        }
 
         //Call function to draw the Radar chart
         RadarChart(".radarChart", data, radarChartOptions);

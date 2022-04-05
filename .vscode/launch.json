@@ -7,7 +7,13 @@
             "type": "firefox",
             "request": "launch",
             "reAttach": true,
-            "file": "${workspaceFolder}/index.html"
+            "file": "${workspaceFolder}/index.html",
+            "pathMappings": [
+                {
+                    "url": "file:///C:",
+                    "path": "c:"
+                }
+            ]
         }
     ]
 }
