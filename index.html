@@ -11,9 +11,7 @@
   <body>
     <!-- <script src="lab4.js"></script> -->
     <!-- Initialize a select button -->
-    <div class="radarChart"></div>
 
-    <script src="radarChart.js"></script>
     <select id="start"></select>
     <select id="end"></select>
     <button id="barButton">Update</button>
@@ -23,8 +21,10 @@
     <select id="timePeriod"></select>
     <div id="scatter"></div>
     <div id="circular"></div>
+    <div class="radarChart"></div>
 
-    
+    <script src="radarChart.js"></script>
+
     <script>
       // CSV of spend data, all seasons in one csv
       let spendPerClubPerSeason =
@@ -156,9 +156,8 @@
               }
             }
           } catch (err) {}
-          }
-          
-        };
+        }
+      };
 
       const processCsvEntrySeason = async function (csvLine) {
         let entryDict = {};
@@ -645,7 +644,6 @@
       ) {
         // Iterate through the dataset and add rectangles for each item
         var mapped = Object.keys(seasons[season]).map((d) => {
-          console.log(seasons[season][d][scatterX]);
           return {
             club: d,
             xVal: seasons[season][d][scatterX],
@@ -660,7 +658,6 @@
           .append("image")
           .attr("xlink:href", function (d) {
             console.log(d);
-
             return icons[d.club];
           })
           .attr("x", function (d) {
@@ -670,9 +667,24 @@
             return y(d.yVal);
           })
           .attr("width", 35)
-          .attr("height", 35);
+          .attr("height", 35)
+          .on("click", function (d) {
+            console.log(d3.select("#timePeriod").property("value"));
+            console.log(getKeyByValue(icons, d.target.href.baseVal));
+            let data2 = 
+              seasons[d3.select("#timePeriod").property("value")][getKeyByValue(icons, d.target.href.baseVal)];
+              console.log(data2);
+            RadarChart(
+              ".radarChart",
+              data2,
+              d3.select("#timePeriod").property("value"),
+              getKeyByValue(icons, d.target.href.baseVal)
+            );
+          });
       };
-
+      function getKeyByValue(object, value) {
+        return Object.keys(object).find((key) => object[key] === value);
+      }
       const updateScatter = async function (
         key,
         svgArr,
@@ -924,42 +936,12 @@
       };
 
       const radar = function () {
-        /* Radar chart design created by Nadieh Bremer - VisualCinnamon.com */
-
-        //////////////////////////////////////////////////////////////
-        //////////////////////// Set-Up //////////////////////////////
-        //////////////////////////////////////////////////////////////
-
-        var margin = { top: 100, right: 100, bottom: 100, left: 100 },
-          width =
-            Math.min(700, window.innerWidth - 10) - margin.left - margin.right,
-          height = Math.min(
-            width,
-            window.innerHeight - margin.top - margin.bottom - 20
-          );
-
-        //////////////////////////////////////////////////////////////
-        //////////////////// Draw the Chart //////////////////////////
-        //////////////////////////////////////////////////////////////
-
-        var color = d3.scaleOrdinal().range(["#5bc8ef", "#5b60ef", "#b2c9c9", "#f31e56", "#f74018", "#56da41" ]);
-
-        var radarChartOptions = {
-          w: width,
-          h: height,
-          margin: margin,
-          maxValue: 0.5,
-          levels: 5,
-          roundStrokes: true,
-          color: color,
-        };
-        let key = '16-17';
-        let club = 'Liverpool'
+        let key = "16-17";
+        let club = "Liverpool";
         let data = seasons[key][club];
 
-
         //Call function to draw the Radar chart
-        RadarChart(".radarChart", data, radarChartOptions);
+        RadarChart(".radarChart", data, key, club);
       };
 
       const main = async function (spendPerClubPerSeason, csvArr) {
