@@ -10,31 +10,34 @@
   </style>
   <body>
     <!-- <script src="lab4.js"></script> -->
-    <!-- Initialize a select button -->
-
+    <!-- Initialise 2 select buttons, one for the start year of the graph, one for the end year, also initilise an enter button to reload the graph
+    along with a div for the bar chart -->
+  
     <select id="start"></select>
     <select id="end"></select>
     <button id="barButton">Update</button>
     <div id="barchart"></div>
+    <!--Div to hold the select buttons to choose the x and y axes for the graph and the season and another div for the scatter itself-->
     <div id="buttons">
-    <select id="xAxisButton"></select>
-    <select id="yAxisButton"></select>
-    <select id="timePeriod"></select>
-    Click a team crest to load the radar chart with that teams current season
-
-  </div>
+      <select id="xAxisButton"></select>
+      <select id="yAxisButton"></select>
+      <select id="timePeriod"></select>
+      Click a team crest to load the radar chart with that teams current season
+    </div>
+    <!-- Div for the scatter graph-->
     <div id="scatter"></div>
 
     <div class="radarChart"></div>
-
+    <!-- Div for the circular bar chart-->
     <div id="circular"></div>
-    <script src="radarChart.js"></script>
     <script>
       // CSV of spend data, all seasons in one csv
+      // Data taken from: https://www.transfermarkt.co.uk/premier-league/einnahmenausgaben/wettbewerb/GB1
       let spendPerClubPerSeason =
         "https://raw.githubusercontent.com/Nfb4/lab4/master/csvs/spend.csv";
 
       // multiple csvs of stats for each individual season
+      // Taken from: https://fbref.com/en/
       let csvArr = [
         "https://raw.githubusercontent.com/Nfb4/lab4/master/csvs/seasons/prem10-11.csv",
         "https://raw.githubusercontent.com/Nfb4/lab4/master/csvs/seasons/prem11-12.csv",
@@ -48,16 +51,6 @@
         "https://raw.githubusercontent.com/Nfb4/lab4/master/csvs/seasons/prem19-20.csv",
         "https://raw.githubusercontent.com/Nfb4/lab4/master/csvs/seasons/prem20-21.csv",
       ];
-
-      // Dictionary to store totals data for each club
-      let cumulative = {
-        Arsenal: [0],
-        Chelsea: [0],
-        "Manchester Utd": [0],
-        "Manchester City": [0],
-        Liverpool: [0],
-        Tottenham: [0],
-      };
 
       // Dictionary of dictionaries for each club in each season
       let seasons = {
@@ -75,7 +68,7 @@
       };
 
       const processCsvEntrySpend = async function (csvLine) {
-        // do stuff for that single csv
+        // Dictionary to store data for this single line of the csv
         let entryDict = {};
 
         // If the spend is in the thousands, multiple by .001 so it is inline with the other values in millions
@@ -120,7 +113,7 @@
           // Parse as int and remove '£' and 'M'
           net = parseFloat(csvLine["net"].slice(1, csvLine["net"].length - 1));
         }
-
+        // Add the values to the dictionary, now that the correct values have been ensured
         entryDict["yr"] = csvLine["yr"];
         entryDict["team"] = csvLine["team"];
         entryDict["spend"] = spend;
@@ -132,38 +125,24 @@
       };
 
       const dummyFunc = async function (csvPath) {
+        // Load the csv file
         const csvData = await d3.csv(csvPath);
 
         for (i = 0; i < csvData.length; i++) {
+          // Call the processing helper function
           let clubDict = await processCsvEntrySpend(csvData[i]);
+          // Add the returned ddata from the helper function to the appropriate club for the appropriate season
           seasons[clubDict.yr][clubDict.team] = [
             clubDict.spend,
             clubDict.inc,
             clubDict.net,
           ];
-          try {
-            if (cumulative[clubDict.team] != undefined) {
-              if (cumulative[clubDict.team][0] > 0) {
-                cumulative[clubDict.team] = [
-                  cumulative[clubDict.team][0] + clubDict.spend,
-                  cumulative[clubDict.team][1] + clubDict.inc,
-                  cumulative[clubDict.team][0] +
-                    clubDict.spend -
-                    (cumulative[clubDict.team][1] + clubDict.inc),
-                ];
-              } else {
-                cumulative[clubDict.team] = [
-                  clubDict.spend,
-                  clubDict.inc,
-                  clubDict.net,
-                ];
-              }
-            }
-          } catch (err) {}
+
         }
       };
 
       const processCsvEntrySeason = async function (csvLine) {
+        // Create a dictionary to store this lines data, parse all as float so that it can be plotted
         let entryDict = {};
         entryDict["team"] = csvLine["Squad"];
 
@@ -181,8 +160,13 @@
       };
 
       const dummyFuncSeason = async function (csvPath) {
+        // Get the season key from the csvfiles string, the end contains the appropriate chars
         let key = csvPath.slice(68, 73);
+        // load the csv file
         const csvData = await d3.csv(csvPath);
+        // for each line in the csv file, call the helper function
+        // then add the newly returned data to the apprpriate clubb and season, 
+        // while maintaining the data from the spend function
         for (i = 0; i < csvData.length; i++) {
           let clubDict = await processCsvEntrySeason(csvData[i]);
           seasons[key][clubDict.team] = seasons[key][clubDict.team] = [
@@ -197,39 +181,13 @@
             clubDict.data[6],
             clubDict.data[7],
           ];
-          try {
-            if (cumulative[clubDict.team] != undefined) {
-              if (cumulative[clubDict.team][3] != undefined) {
-                cumulative[clubDict.team] = [
-                  cumulative[clubDict.team][0],
-                  cumulative[clubDict.team][1],
-                  cumulative[clubDict.team][2],
-                  cumulative[clubDict.team][3] + clubDict.data[1],
-                  cumulative[clubDict.team][4] + clubDict.data[2],
-                  cumulative[clubDict.team][5] + clubDict.data[3],
-                  cumulative[clubDict.team][6] + clubDict.data[4],
-                  cumulative[clubDict.team][7] + clubDict.data[5],
-                  cumulative[clubDict.team][8] + clubDict.data[6],
-                ];
-              } else {
-                cumulative[clubDict.team] = [
-                  cumulative[clubDict.team][0],
-                  cumulative[clubDict.team][1],
-                  cumulative[clubDict.team][2],
-                  clubDict.data[1],
-                  clubDict.data[2],
-                  clubDict.data[3],
-                  clubDict.data[4],
-                  clubDict.data[5],
-                  clubDict.data[6],
-                ];
-              }
-            }
-          } catch (err) {}
         }
       };
 
       const graphing = async function (totals, width, height) {
+        // Find the max spend, as that is the field being graphed
+        // This is used instead of the d3 function as due to the way data is stored 
+        // it was easier to access data in this way
         var max = 0;
         for (const key in totals) {
           var clubSpend = totals[key][0];
@@ -237,15 +195,19 @@
             max = clubSpend;
           }
         }
+        // Set the y access to be on the domain of the club names
+        // heigh of the svg is the upper limit
         var y = d3.scaleBand().domain(Object.keys(totals)).range([0, height]);
 
-        // Define the y scale so that the values are proportionate
+        // The x axes is reach to the highest spend value and span the width of the svg
         var x = d3.scaleLinear().domain([0, max]).range([0, width]);
 
         return [x, y];
       };
 
       const scatterAxes = async function (season, xType, yType, width, height) {
+        // Find the maxes for both values to set each axis,
+        // again this is used rather than the d3 function as it was easier to access data this way
         var maxX = 0;
         var maxY = 0;
         for (const key in seasons[season]) {
@@ -258,6 +220,8 @@
             maxY = clubY;
           }
         }
+        // Set up the axis scales, the domains each have 5 added to them so that the team with the highest value for a 
+        // field is not at the absolute edge of a graph and has some space for aesthetic purposes
         var y = d3
           .scaleLinear()
           .domain([0, maxY + 5])
@@ -279,8 +243,10 @@
         innerRadius,
         outerRadius
       ) {
+        // as essentially two bar charts are being plotted in the one graph a max must be found for each bar
         var max1 = 0;
         var max2 = 0;
+        // Find the max spend and the max income to limit the graphs
         for (const key in totals) {
           var clubSpend = totals[key][0];
           var clubInc = totals[key][1];
@@ -296,14 +262,14 @@
           .scaleBand()
           .range([0, 2 * Math.PI]) // X axis goes from 0 to 2pi = all around the circle. If I stop at 1Pi, it will be around a half circle
           .align(0) // This does nothing
-          .domain(Object.keys(totals)); // The domain of the X axis is the list of states.
+          .domain(Object.keys(totals)); // The domain of the X axis is the list of clubs.
         var y = d3
           .scaleRadial()
-          .range([innerRadius, outerRadius]) // Domain will be define later.
+          .range([innerRadius, outerRadius])
           .domain([0, max1]); // Domain of Y is from 0 to the max seen in the data
         var ybis = d3
           .scaleRadial()
-          .range([innerRadius, 5]) // Domain will be defined later.
+          .range([innerRadius, 5])
           .domain([0, max2]);
         return [x, y, ybis];
       };
@@ -329,7 +295,7 @@
         const width = 800 - margin.left - margin.right;
         const height = 800 - margin.top - margin.bottom;
 
-        // append the svg object to the body of the page
+        // append the svg object to the barchart div
         var svg = d3
           .select("#barchart")
           .append("svg")
@@ -350,6 +316,7 @@
         const width = 800 - margin.left - margin.right;
         const height = 800 - margin.top - margin.bottom;
 
+        // Set the inner and outer radius that will be used for drawin the circles
         const innerRadius = 90;
         const outerRadius = Math.min(width, height) / 2;
 
@@ -364,7 +331,7 @@
             "transform",
             "translate(" + margin.left + "," + margin.top + ")"
           );
-
+        
         svg
           .append("text")
           .classed("text", true)
@@ -393,6 +360,7 @@
             "translate(" + margin.left + "," + margin.top + ")"
           );
 
+        // The different options for the axis, these are loaded by the select buttons to allow for the selection of the axis 
         const axisValues = [
           "Goals For",
           "Goals Against",
@@ -431,6 +399,7 @@
             return d;
           }); // corresponding value returned by the button
 
+          // Choice of seasons
         d3.select("#timePeriod")
           .selectAll("myOptions")
           .data(seasonsArr)
@@ -447,19 +416,21 @@
       };
 
       const drawBars = function (season, totals, x, y, svg, height, barsize) {
-        // Iterate through the dataset and add rectangles for each item
+        // Iterate through each item in the dictioanry, add the club and spend values to a map
         var mapped = Object.keys(totals).map((d) => {
           return {
             club: d,
             spend: totals[d][0],
           };
         });
+        // Adjustment value as the y values for the bars don't match properly with the labels
         let adjustment = mapped.length / 4;
         var u = svg.selectAll("rect").data(mapped);
 
+        // For each item in the map add a rectangle
         u.enter()
           .append("rect")
-          .attr("x", x(1))
+          .attr("x", x(1)) // x(1) is used so that the bar does not start directly on the line
           .attr("y", function (d) {
             return y(d.club) + adjustment;
           })
@@ -476,24 +447,25 @@
         u.transition()
           .duration(1000)
           .ease(d3.easeLinear)
-          .attr("x", x(1))
+          .attr("x", x(0))
           .attr("y", function (d) {
             return y(d.club) + adjustment;
           })
           .attr("width", function (d) {
             return x(d.spend);
           });
-
+          // remove when less bars entries are used, i.e when transitioning from full data to a select few seasons
         u.exit().remove();
       };
 
       const updateBar = async function (totals, key, svgArr, barsize) {
+        // remove the axes that exist, then readd with new values for maxes and clubs
         svgArr[3].selectAll("g").remove();
 
         let scales = await graphing(totals, svgArr[1], svgArr[2]);
 
         iniAxis(svgArr[2], svgArr[3], scales[0], scales[1]);
-
+        // draw bars again now that data is updated
         drawBars(
           key,
           totals,
@@ -516,6 +488,7 @@
         innerRadius,
         outerRadius
       ) {
+        // Take the club, spend and income from the totals dictionary and turn it to a map
         var mapped = Object.keys(totals).map((d) => {
           return {
             club: d,
@@ -523,7 +496,7 @@
             inc: totals[d][1],
           };
         });
-
+        // Add paths for each spend item, using the first y scale
         svg
           .append("g")
           .selectAll("path")
@@ -534,7 +507,7 @@
           .attr(
             "d",
             d3
-              .arc() // imagine your doing a part of a donut plot
+              .arc() 
               .innerRadius(innerRadius)
               .outerRadius(function (d) {
                 return y(d.spend);
@@ -548,7 +521,7 @@
               .padAngle(0.01)
               .padRadius(innerRadius)
           );
-
+        // Add text for each club in the data set
         svg
           .append("g")
           .selectAll("g")
@@ -584,6 +557,7 @@
           .style("font-size", "11px")
           .attr("alignment-baseline", "middle");
 
+        // add a path item for each income item, using the second y scale
         svg
           .append("g")
           .selectAll("path")
@@ -613,8 +587,10 @@
       };
 
       const updateCircle = async function (totals, svgArr) {
+        // Remove the axes
         svgArr[3].selectAll("g").remove();
 
+        // re-create the ciruclar axes
         let scales = await circularAxes(
           totals,
           svgArr[1],
@@ -622,7 +598,7 @@
           svgArr[4],
           svgArr[5]
         );
-
+        // update the 'bars'
         drawCircle(
           totals,
           scales[0],
@@ -646,7 +622,7 @@
         scatterY,
         icons
       ) {
-        // Iterate through the dataset and add rectangles for each item
+        // for each of the selected axes, iterate through the selected season of data and create a map
         var mapped = Object.keys(seasons[season]).map((d) => {
           return {
             club: d,
@@ -654,14 +630,16 @@
             yVal: seasons[season][d][scatterY],
           };
         });
+        // remove the existing images
         svg.selectAll("image").remove();
 
+        // Create an image item for each entry in the map
         var u = svg.selectAll("image").data(mapped);
 
         u.enter()
           .append("image")
           .attr("xlink:href", function (d) {
-            console.log(d);
+            // Take the image link from the icons dictionary based on the entries club
             return icons[d.club];
           })
           .attr("x", function (d) {
@@ -673,13 +651,14 @@
           .attr("width", 35)
           .attr("height", 35)
           .on("click", function (d) {
-            console.log(d3.select("#timePeriod").property("value"));
-            console.log(getKeyByValue(icons, d.target.href.baseVal));
+            // when clicking on a club crest load a radar chart for that club in the current season
+            // Get the season data for the season in the select button, and get the key from the href value
+            // in the icons dictionary
             let data2 =
               seasons[d3.select("#timePeriod").property("value")][
                 getKeyByValue(icons, d.target.href.baseVal)
               ];
-            console.log(data2);
+              // call radar chart with the respective season data, season and club
             RadarChart(
               ".radarChart",
               data2,
@@ -688,6 +667,7 @@
             );
           });
       };
+      // take an object and a value, return the first key for that value in the object
       function getKeyByValue(object, value) {
         return Object.keys(object).find((key) => object[key] === value);
       }
@@ -698,9 +678,11 @@
         scatterY,
         icons
       ) {
+        // remove the axes and the text that is already on the svg
         svgArr[3].selectAll("g").remove();
         svgArr[3].selectAll("text").remove();
 
+        // add a text item, halfway down the svg, to the left of the x axis
         svgArr[3]
           .append("text")
           .classed("xAxisText", true)
@@ -711,6 +693,7 @@
           .attr("text-anchor", "middle")
           .text(d3.select("#xAxisButton").property("value"));
 
+        // add a text item, at the bottom of the svg, underneath the y axis
         svgArr[3]
           .append("text")
           .classed("instruction", true)
@@ -718,6 +701,7 @@
           .attr("text-anchor", "middle")
           .text(d3.select("#yAxisButton").property("value"));
 
+          // recreate the scales
         let scales = await scatterAxes(
           key,
           scatterX,
@@ -725,7 +709,9 @@
           svgArr[1],
           svgArr[2]
         );
+        // draw the axis
         iniAxis(svgArr[2], svgArr[3], scales[0], scales[1]);
+        // plot the points on the svg
         drawScatter(
           key,
           scales[0],
@@ -820,6 +806,7 @@
       };
 
       const iniButtons = function (seasonsArr, seasonsArr2) {
+        // initilise the buttons for the bar chart
         d3.select("#start")
           .selectAll("myOptions")
           .data(seasonsArr)
@@ -845,6 +832,7 @@
       };
 
       const iniButtonsSingle = function (seasonsArr2) {
+        // update the second season options based on the start season selected
         d3.select("#end")
           .selectAll("myOptions")
           .data(seasonsArr2)
@@ -866,8 +854,10 @@
         totals,
         barsize
       ) {
+        // remove the text from the svg
         svgArrBar[3].selectAll("text").remove();
 
+        // add a graph title
         svgArrBar[3]
           .append("text")
           .classed("barTitle", true)
@@ -876,7 +866,7 @@
           .text(
             "Premier league spend from " + seasonKey1 + " to " + seasonKey2
           );
-
+        // add text to the bottom of the svg indicating what the x axis is
         svgArrBar[3]
           .append("text")
           .classed("xAxisText", true)
@@ -887,11 +877,16 @@
           .attr("text-anchor", "middle")
           .text("Spend - (£ - Millions)");
 
+        // sleep value is initilised at 0 so the graph is drawn immediately
         let sleepVal = 0;
+        // iterate through the csvs and populate the data
         for (let i = 0; i < csvArr.length; i++) {
+          // key set to season info from the csv path
           let key = csvArr[i].slice(68, 73);
-
+          // populate the season data for the current season
           await dummyFuncSeason(csvArr[i]);
+          // for each team in the current csv file, update the totals 
+          // if the club already exists, update the data, if not add the entry
           for (let team in seasons[key]) {
             if (seasons[key][team][0] > 0) {
               if (totals[team] != undefined) {
@@ -900,6 +895,7 @@
                 totals[team] = [seasons[key][team][0], 0];
               }
             }
+            // needs this if as some entries have no income values
             if (seasons[key][team][1] > 0) {
               if (totals[team] != undefined) {
                 totals[team][1] = totals[team][1] + seasons[key][team][1];
@@ -908,8 +904,10 @@
               }
             }
           }
-
+          // wait so that the current state of the graph can be observed
           await sleep(sleepVal);
+          // update the sleep value so that the wait occurs, for following updates
+          // as a  wait at the very beginning is pointless
           sleepVal = 0;
 
           await updateBar(totals, key, svgArrBar, barsize);
@@ -923,19 +921,25 @@
         csvArr,
         barsize
       ) {
+        // totals to keep increasing values
+        let sleepVal = 1500
         totals = {};
-
+        // set a title for the graph
         svgArrBar[3]
           .select(".barTitle")
           .text(
             "Premier league spend from " + seasonKey1 + " to " + seasonKey2
           );
-
-        let sleepVal = 300;
+        // iterate through the csvs and populate the data
         for (let i = 0; i < csvArr.length; i++) {
+                    // key set to season info from the csv path
+
           let key = csvArr[i].slice(68, 73);
+          // populate the season data for the current season
 
           await dummyFuncSeason(csvArr[i]);
+                    // for each team in the current csv file, update the totals 
+          // if the club already exists, update the data, if not add the entry
           for (let team in seasons[key]) {
             if (seasons[key][team][0] > 0) {
               if (totals[team] != undefined) {
@@ -944,6 +948,8 @@
                 totals[team] = [seasons[key][team][0], 0];
               }
             }
+            // needs this if as some entries have no income values
+
             if (seasons[key][team][1] > 0) {
               if (totals[team] != undefined) {
                 totals[team][1] = totals[team][1] + seasons[key][team][1];
@@ -952,17 +958,15 @@
               }
             }
           }
-
+          // wait so that the current state of the graph can be observed
           await sleep(sleepVal);
-          sleepVal = 1500;
-          svgArrBar[3]
-            .selectAll(".barTitle")
-            .text("Premier league spend from " + seasonKey1 + " to " + key);
+          // update the 
           await updateBar(totals, key, svgArrBar, barsize);
         }
       };
 
       const radar = function () {
+        // intitlise the data, to load an initial radarchart
         let key = "16-17";
         let club = "Liverpool";
         let data = seasons[key][club];
@@ -971,7 +975,145 @@
         RadarChart(".radarChart", data, key, club);
       };
 
+      function RadarChart(id, input, season, club) {
+        // Based off this template http://bl.ocks.org/tpreusse/2bc99d74a461b8c0acb1
+        // clear the svg
+        d3.select(id).select("svg").remove();
+        // initilse dimensions of the svg
+        const margin = { top: 30, right: 30, bottom: 70, left: 100 };
+        const width = 800 - margin.left - margin.right;
+        const height = 800 - margin.top - margin.bottom;
+
+        // Set the features array so the axes can be populated
+        let features = [
+          "Spend",
+          "Income",
+          "Net",
+          "Wins",
+          "Draws",
+          "Loses",
+          "Goals For",
+          "Goals Against",
+          "Points",
+        ];
+        // dictionary set up to store the data
+        let data = [{}];
+        for (let i = 0; i < features.length; i++) {
+          // from the loaded dictionary, add the data items,
+          // along with the feature name
+          data[0][features[i]] = input[i];
+        }
+        // find the largest value in the dataset to set the limits of the graph
+        let max = 0;
+        for (let i = 0; i < features.length; i++) {
+          if (data[0][features[i]] > max) {
+            max = data[0][features[i]];
+          }
+        }
+        // round the max up to the next 10 so that the graph has some spacing
+        max = Math.ceil(max / 10) * 10;
+
+        let svg = d3
+          .select(id)
+          .append("svg")
+          .attr("width", width)
+          .attr("height", height);
+          // clear the text
+        d3.select(id).select("svg").select("text").remove();
+
+        // add title for the chart
+        svg
+          .append("text")
+          .classed("text", true)
+          .attr("transform", "translate(" + height / 2 + ", 12)")
+          .attr("text-anchor", "middle")
+          .text("Radar chart for " + club + " during " + season);
+
+          
+        
+        // set a scale with the max that has been found
+        let radialScale = d3.scaleLinear().domain([0, max]).range([0, 250]);
+        // set the breaks in the chart to fifths of the max
+        let ticks = [max * 0.2, max * 0.4, max * 0.6, max * 0.8, max];
+        ticks.forEach((t) =>
+          svg
+            .append("circle")
+            .attr("cx", 300)
+            .attr("cy", 300)
+            .attr("fill", "none")
+            .attr("stroke", "gray")
+            .attr("r", radialScale(t))
+        );
+        // Add a text above the center for the tick value
+        ticks.forEach((t) =>
+          svg
+            .append("text")
+            .attr("x", 305)
+            .attr("y", 300 - radialScale(t))
+            .text(t.toString())
+        );
+        function angleToCoordinate(angle, value) {
+          let x = Math.cos(angle) * radialScale(value);
+          let y = Math.sin(angle) * radialScale(value);
+          return { x: 300 + x, y: 300 - y };
+        }
+        for (var i = 0; i < features.length; i++) {
+          let ft_name = features[i];
+          let angle = Math.PI / 2 + (2 * Math.PI * i) / features.length;
+          let line_coordinate = angleToCoordinate(angle, max);
+          let label_coordinate = angleToCoordinate(angle, max + 5);
+
+          //draw axis line
+          svg
+            .append("line")
+            .attr("x1", 300)
+            .attr("y1", 300)
+            .attr("x2", line_coordinate.x)
+            .attr("y2", line_coordinate.y)
+            .attr("stroke", "black");
+
+          //draw axis label
+          svg
+            .append("text")
+            .attr("x", label_coordinate.x)
+            .attr("y", label_coordinate.y)
+            .text(ft_name);
+        }
+        let line = d3
+          .line()
+          .x((d) => d.x)
+          .y((d) => d.y);
+        let colors = ["navy"];
+        function getPathCoordinates(data_point) {
+          let coordinates = [];
+          for (var i = 0; i < features.length; i++) {
+            let ft_name = features[i];
+            let angle = Math.PI / 2 + (2 * Math.PI * i) / features.length;
+            coordinates.push(angleToCoordinate(angle, data_point[ft_name]));
+          }
+          return coordinates;
+        }
+        for (var i = 0; i < data.length; i++) {
+          let d = data[i];
+          let color = colors[i];
+          let coordinates = getPathCoordinates(d);
+
+          //draw the path element
+          svg
+            .append("path")
+            .datum(coordinates)
+            .attr("d", line)
+            .attr("stroke-width", 3)
+            .attr("stroke", color)
+            .attr("fill", color)
+            .attr("stroke-opacity", 1)
+            .attr("opacity", 0.5);
+        }
+      }
+
       const main = async function (spendPerClubPerSeason, csvArr) {
+        // As the axes selected in the scatter graph are in an array, the strings selected
+        // need to correspond to the values
         let axisDict = {
           Spend: 0,
           "Incoming Money": 1,
@@ -983,7 +1125,7 @@
           Points: 8,
           Attendance: 9,
         };
-
+        // The possible seasons for the graphs
         const seasonsArr = [
           "10-11",
           "11-12",
@@ -997,17 +1139,20 @@
           "19-20",
           "20-21",
         ];
-
+        // The size of the bars in the first bar chart
         let barsize = 10;
 
+        // initilise the dictionary to store cummulative data
         let totals = {};
-
+        // load the icons for the scatter graph
         let icons = await iniIcons();
 
-        let seasonKey = csvArr[0].slice(68, 73);
+        // Initial values for the scatter graph
+        let seasonKey = "10-11"
         let scatterX = axisDict["Goals For"];
         let scatterY = axisDict["Goals For"];
 
+        // Second select button options for the bar chart, same as initial list less the first index
         let seasonsArr2 = seasonsArr.slice(1);
 
         iniButtons(seasonsArr, seasonsArr2);
@@ -1028,6 +1173,7 @@
           icons
         );
 
+        // When the time period is changed for the scatter graph update the scatter based on the values in each button
         d3.select("#timePeriod").on("change", function (event, d) {
           // recover the option that has been chosen
           const option1 = d3.select(this).property("value");
@@ -1041,7 +1187,8 @@
             icons
           );
         });
-
+        
+        // When the yAxis period is changed for the scatter graph update the scatter based on the values in each button
         d3.select("#yAxisButton").on("change", function (event, d) {
           // recover the option that has been chosen
           const option1 = d3.select("#timePeriod").property("value");
@@ -1055,7 +1202,7 @@
             icons
           );
         });
-
+        // When the xAxis period is changed for the scatter graph update the scatter based on the values in each button
         d3.select("#xAxisButton").on("change", function (event, d) {
           // recover the option that has been chosen
           const option1 = d3.select("#timePeriod").property("value");
@@ -1070,6 +1217,7 @@
           );
         });
 
+        // When the start season is changed, update the end options so the end cannot be after the start
         d3.select("#start").on("change", function (event, d) {
           // recover the option that has been chosen
           const option = d3.select(this).property("value");
@@ -1079,7 +1227,9 @@
           removeOptions(document.getElementById("end"));
           iniButtonsSingle(seasonsArr.slice(index));
         });
-
+        // when the button is clicked, take the values for start and end seasons
+        // find their indexs in the seasons list, then load the bar chart only using the seasons in this range
+        // clear the options for the buttons and reset them,to the start
         d3.select("#barButton").on("click", function (event, d) {
           const start = d3.select("#start").property("value");
           const end = d3.select("#end").property("value");
@@ -1096,10 +1246,10 @@
           removeOptions(document.getElementById("end"));
           iniButtons(seasonsArr, seasonsArr.slice(indexEnd));
         });
-
+        // call the circular bar chart
         let svgArrCircular = await iniSVGCircular();
         await updateCircle(totals, svgArrCircular);
-
+        // call the radar chart
         radar();
       };
       function removeOptions(selectElement) {
